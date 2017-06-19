@@ -1,4 +1,4 @@
-#Discord Random Bot
+Discord Random Bot
 
 This is a Discord Bot for me to experiment a bit and learn some Python along the way. 
 
