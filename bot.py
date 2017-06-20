@@ -14,8 +14,6 @@ except:
 import random
 import configparser
 from googleapiclient.discovery import build
-from pprint import pprint
-
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -157,25 +155,31 @@ async def hello(ctx):
     """Says Hello"""
     await bot.say(f"Hello {ctx.message.author.mention}!")
 
-@bot.command()
-async def img(query: str):
+@bot.command(pass_context=True)
+async def img(ctx, query: str):
     """Searches for an Image on Google and returns the first result"""
     if googlekey=='':
         await bot.say("No google api key specified!")
         return
 
+    query.strip()
     service = build("customsearch", "v1", developerKey=googlekey)
 
     res=service.cse().list(
         q=query,
         cx=search_engine_id,
         num=1,
-        fields="items(image(contextLink,thumbnailLink),link)",
+        fields="items(image(contextLink),link)",
         safe='high',
         searchType='image'
     ).execute()
-    pprint(res)
-    await bot.say(f"Searched for {query}. Look to the console for the result")
+    link = res['items'][0]['link']
+
+
+    embed = discord.Embed()
+    embed.set_image(url=str(link))
+    embed.set_author(name=f"Image Search for {query}")
+    await bot.send_message(ctx.message.channel, embed=embed)
 
 try:
     bot.run(loginID)
