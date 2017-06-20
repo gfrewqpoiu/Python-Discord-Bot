@@ -72,21 +72,21 @@ async def getrandints(minimum: int=1, maximum: int=6, amount: int=1, force_built
             try:
                 results = trandom.generate_integers(n=amount, min=minimum, max=maximum)
                 result = ''.join(str(results))
-                return result + " provided by random.org"
+                return result.strip() + " provided by random.org"
 
             except:
                 result = ''
                 for i in range(0, amount):
                     result += str(random.randint(minimum, maximum)) + " "
 
-                return result
+                return result.strip()
 
         else:
             result = ''
             for i in range(0, amount):
                 result += str(random.randint(minimum, maximum)) + " "
 
-            return result
+            return result.strip()
 
     elif minimum >= maximum:
         raise ValueError("Minimum needs to be smaller than Maximum")
@@ -195,24 +195,39 @@ if provideSearch:
     async def img(ctx, *, query: str=""):
         """Searches for an Image on Google and returns the first result"""
         query.strip()
-
-        if not googlekey:
-            await bot.say("No google api key specified!")
-            return
-
         if not query:
             await bot.say("Please provide a search term")
             return
 
-        res= await getimage(query=query)
-        link = res['items'][0]['link']
-
         queryurl = parse.quote_plus(query)
+        res = await getimage(query)
+        link = res['items'][0]['link']
 
         embed = discord.Embed()
         embed.set_image(url=str(link))
         embed.set_author(name=f"Image Search for {query} by {ctx.message.author.name}",
-            url=f"https://www.google.de/search?q={queryurl}&source=lnms&tbm=isch")
+            url=f"https://www.google.com/search?q={queryurl}&source=lnms&tbm=isch")
+
+        await bot.send_message(ctx.message.channel, embed=embed)
+
+    @bot.command(pass_context=True)
+    async def rimg(ctx, *, query: str = ""):
+        """Searches for an Image on Google and returns a random result"""
+        query.strip()
+        if not query:
+            await bot.say("Please provide a search term")
+            return
+
+        queryurl = parse.quote_plus(query)
+        start = await getrandints(maximum=50)
+        res = await getimage(query, start=int(start))
+        link = res['items'][0]['link']
+
+        embed = discord.Embed()
+        embed.set_image(url=str(link))
+        embed.set_author(name=f"Image Search for {query} by {ctx.message.author.name}",
+                         url=f"https://www.google.com/search?q={queryurl}&source=lnms&tbm=isch")
+
         await bot.send_message(ctx.message.channel, embed=embed)
 
 try:
