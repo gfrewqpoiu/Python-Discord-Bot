@@ -1,54 +1,102 @@
 #!/usr/bin/env python3
+import random
+import configparser
 import sys
-try:
+try: #These are mandatory.
     import discord
     from discord.ext import commands
     from discord import utils
     import asyncio
 except:
-    raise ModuleNotFoundError("You don't have Discord.py installed, install it with 'pip3 install --user discord.py[voice]'")
-try:
-    import pyrandom as trandom
-except:
-    {}
-import random
-import configparser
-from googleapiclient.discovery import build
+    raise ModuleNotFoundError("You don't have Discord.py installed, install it with 'pip3 install --user --upgrade discord.py[voice]'")
 
+#Import the Config file
 config = configparser.ConfigParser()
 config.read('config.ini')
 login = config['Login']
 settings = config['Settings']
 rngcfg = config['Randomness']
-googlekey=settings.get('Google API Key', '')
+searchcfg = config['Search']
+
+userandomAPI = rngcfg.getboolean('Use Random.org', False)
+usegoogleAPI = searchcfg.getboolean('Use Google Image Search', False)
+loginID = login.get('Login Token')
+mainChannelID = settings.get('Main Channel', '')
+provideSearch=False
+provideRandomOrg=False
+
+#Check for optional features
+if userandomAPI:
+    randomAPIKey = rngcfg.get('Random.org Key', '')
+    randomAPIKey.strip()
+    if randomAPIKey:
+        try:
+            import pyrandom as trandom
+            trandom.set_api_key(randomAPIKey)
+            provideRandomOrg = True
+        except:
+            pass
+
+if usegoogleAPI:
+    googlekey = searchcfg.get('Google API Key', '')
+    googlekey.strip()
+    if googlekey:
+        try:
+            from googleapiclient.discovery import build
+            from urllib import parse
+            search_engine_id = "018084019232060951019:hs5piey28-e"
+            provideSearch = True
+        except:
+            pass
+
+if provideSearch:
+    from urllib import parse
+    searchservice = build("customsearch", "v1", developerKey=googlekey)
+
+
+#Utility functions
+async def getimage(query: str, start: int=1):
+    return searchservice.cse().list(
+        q=query,
+        cx=search_engine_id,
+        num=1,
+        fields="items(image(contextLink),link)",
+        safe='high',
+        searchType='image',
+        start=start
+    ).execute()
+
+async def getrandints(minimum: int=1, maximum: int=6, amount: int=1, force_builtin: bool=True):
+    if minimum < maximum and 50>=amount>0:
+        if provideRandomOrg and not force_builtin:
+            try:
+                results = trandom.generate_integers(n=amount, min=minimum, max=maximum)
+                result = ''.join(str(results))
+                return result + " provided by random.org"
+
+            except:
+                result = ''
+                for i in range(0, amount):
+                    result += str(random.randint(minimum, maximum)) + " "
+
+                return result
+
+        else:
+            result = ''
+            for i in range(0, amount):
+                result += str(random.randint(minimum, maximum)) + " "
+
+            return result
+
+    elif minimum >= maximum:
+        raise ValueError("Minimum needs to be smaller than Maximum")
+    else:
+        raise ValueError("You need to request at least one and a max of 50 ints")
+
 
 
 bot = commands.Bot(command_prefix=settings.get('prefix', '$'), description=settings.get('Bot Description', 'A WIP bot'), pm_help=True)
 
-loginID = login.get('Login Token')
-mainChannelID = settings.get('Main Channel', '')
-randomAPIKey = rngcfg.get('Random.org Key', '')
-randomAPIUse = rngcfg.getboolean('Use Random.org', False)
-
-# Do not edit anything after this line if you simply want to run this bot
-
-search_engine_id="018084019232060951019:hs5piey28-e"
-
-def _checkrandom():
-    """Checks for the used randomness API"""
-    if randomAPIKey != '' and randomAPIUse:
-        try:
-            trandom.set_api_key(randomAPIKey)
-            return True
-        except:
-            return False
-    else:
-        return False
-
-if _checkrandom():
-    truerandom = True  # Do not edit this
-else:
-    truerandom = False  # Do not edit this
 
 mainchannel = None  # Do not edit this
 @bot.event
@@ -62,10 +110,17 @@ async def on_ready():
        joinmsg = await bot.send_message(mainchannel, 'I am online!')
     except:
         print("There was no Main Channel specified or I couldn't find it")
-    if truerandom:
-        print("I am using random.org for random numbers")
+
+    if provideRandomOrg:
+        print("Using random.org for random numbers")
     else:
-        print("I am not using random.org for random numbers")
+        print("Not using random.org for random numbers")
+
+    if provideSearch:
+        print("Image Search activated")
+    else:
+        print("Image Search deactivated")
+
     print('------')
     if joinmsg != None:
         await asyncio.sleep(10)
@@ -85,58 +140,38 @@ async def msgs(ctx):
     await bot.reply('You have {} messages.'.format(counter), delete_after=10)
 
 
-@bot.command()
-async def sleep():
-    """Makes the bot sleep for 5 seconds"""
-    await asyncio.sleep(5)
-    await bot.say('Done sleeping', delete_after=10)
+@bot.command(pass_context=True)
+async def timer(ctx, seconds: int=5):
+    """Pings you when the given amount of seconds is over"""
+    await asyncio.sleep(seconds)
+    await bot.say(f'{ctx.message.author.mention}, your {seconds} seconds timer is up', delete_after=10)
+
+@bot.group()
+async def rng(min: int=1, max: int=6, amount: int=3):
+    """Uses a random number generator to generate numbers for you
+        If the bot owner has specified a random.org API key the numbers will come from there.
+        Params: min: Minimum value (inclusive)
+                max: Maximum value (inclusive)
+                amount: amount of Numbers to generate"""
+    result = await getrandints(minimum=min, maximum=max, amount=amount, force_builtin=False)
+    await bot.say(str(result))
 
 @bot.command()
-async def random(min: int=1, max: int=6, numbers: int=1):
-    """Uses a random number generator to generate numbers for you"""
-
-    if min >= max:
-        await bot.say("You entered incorrect values for min and max, use `random min max numbers`")
-        return
-
-    if truerandom:
-        try:
-            results = trandom.generate_integers(n=numbers, min=min, max=max)
-            result = ''.join(str(results))
-            await bot.say(result + " provided by random.org")
-        except:
-            result = ''
-            for i in range(1, numbers):
-                result = result + " " + str(random.randint(min, max))
-                await bot.say(result)
-    else:
-        result = ''
-        for i in range(1, numbers):
-            result = result + " " + str(random.randint(min, max))
-            await bot.say(result)
+async def rnglocal(min: int=1, max: int=100, amount: int=3):
+    """Uses the local random number generator to generate numbers for you
+        Unlike the rng command this will never use random.org.
+        Params: min: Minimum value (inclusive)
+                max: Maximum value (inclusive)
+                amount: amount of Numbers to generate"""
+    result = await getrandints(minimum=min, maximum=max, amount=amount, force_builtin=True)
+    await bot.say(str(result))
 
 @bot.command()
-async def rng(min: int=1, max: int=100, numbers: int=3):
-    """Uses a random number generator to generate numbers for you"""
-    if min >= max:
-        await bot.say("You entered incorrect values for min and max, use `random min max numbers`")
-        return
-
-    if truerandom:
-        try:
-            results = trandom.generate_integers(n=numbers, min=min, max=max)
-            result = ''.join(str(results))
-            await bot.say(result + " provided by random.org")
-        except:
-            result = ''
-            for i in range(1, numbers):
-                result = result + " " + str(random.randint(min, max))
-                await bot.say(result)
-    else:
-        result = ''
-        for i in range(1, numbers):
-            result = result + " " + str(random.randint(min, max))
-            await bot.say(result)
+async def dice(amount: int=1):
+    """Uses a random number generator to roll dice for you
+        Parameter amount: Amount of dice to roll"""
+    result = await getrandints(amount=amount, force_builtin=False)
+    bot.say(str(result))
 
 @bot.command(pass_context=True)
 async def shutdown(ctx):
@@ -155,31 +190,30 @@ async def hello(ctx):
     """Says Hello"""
     await bot.say(f"Hello {ctx.message.author.mention}!")
 
-@bot.command(pass_context=True)
-async def img(ctx, query: str):
-    """Searches for an Image on Google and returns the first result"""
-    if googlekey=='':
-        await bot.say("No google api key specified!")
-        return
+if provideSearch:
+    @bot.command(pass_context=True)
+    async def img(ctx, *, query: str=""):
+        """Searches for an Image on Google and returns the first result"""
+        query.strip()
 
-    query.strip()
-    service = build("customsearch", "v1", developerKey=googlekey)
+        if not googlekey:
+            await bot.say("No google api key specified!")
+            return
 
-    res=service.cse().list(
-        q=query,
-        cx=search_engine_id,
-        num=1,
-        fields="items(image(contextLink),link)",
-        safe='high',
-        searchType='image'
-    ).execute()
-    link = res['items'][0]['link']
+        if not query:
+            await bot.say("Please provide a search term")
+            return
 
+        res= await getimage(query=query)
+        link = res['items'][0]['link']
 
-    embed = discord.Embed()
-    embed.set_image(url=str(link))
-    embed.set_author(name=f"Image Search for {query}")
-    await bot.send_message(ctx.message.channel, embed=embed)
+        queryurl = parse.quote_plus(query)
+
+        embed = discord.Embed()
+        embed.set_image(url=str(link))
+        embed.set_author(name=f"Image Search for {query} by {ctx.message.author.name}",
+            url=f"https://www.google.de/search?q={queryurl}&source=lnms&tbm=isch")
+        await bot.send_message(ctx.message.channel, embed=embed)
 
 try:
     bot.run(loginID)
