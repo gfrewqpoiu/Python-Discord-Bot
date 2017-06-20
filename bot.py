@@ -18,12 +18,14 @@ settings = config['Settings']
 rngcfg = config['Randomness']
 searchcfg = config['Search']
 
+#Setup some Variables
 userandomAPI = rngcfg.getboolean('Use Random.org', False)
 usegoogleAPI = searchcfg.getboolean('Use Google Image Search', False)
 loginID = login.get('Login Token')
 mainChannelID = settings.get('Main Channel', '')
-provideSearch=False
-provideRandomOrg=False
+provideSearch = False
+provideRandomOrg = False
+mainchannel = None
 
 #Check for optional features
 if userandomAPI:
@@ -97,8 +99,6 @@ async def getrandints(minimum: int=1, maximum: int=6, amount: int=1, force_built
 
 bot = commands.Bot(command_prefix=settings.get('prefix', '$'), description=settings.get('Bot Description', 'A WIP bot'), pm_help=True)
 
-
-mainchannel = None  # Do not edit this
 @bot.event
 async def on_ready():
     print('Logged in as')
@@ -137,16 +137,19 @@ async def msgs(ctx):
         if log.author == ctx.message.author:
             counter += 1
 
-    await bot.reply('You have {} messages.'.format(counter), delete_after=10)
+    await bot.delete_message(ctx.message)
+    await bot.reply(f'You have {counter} messages.', delete_after=10)
 
 
 @bot.command(pass_context=True)
 async def timer(ctx, seconds: int=5):
     """Pings you when the given amount of seconds is over"""
+    await bot.say("Okay, I will remind you!", delete_after=seconds)
     await asyncio.sleep(seconds)
     await bot.say(f'{ctx.message.author.mention}, your {seconds} seconds timer is up', delete_after=10)
+    await bot.delete_message(ctx.message)
 
-@bot.group()
+@bot.command()
 async def rng(min: int=1, max: int=6, amount: int=3):
     """Uses a random number generator to generate numbers for you
         If the bot owner has specified a random.org API key the numbers will come from there.
@@ -156,15 +159,16 @@ async def rng(min: int=1, max: int=6, amount: int=3):
     result = await getrandints(minimum=min, maximum=max, amount=amount, force_builtin=False)
     await bot.say(str(result))
 
-@bot.command()
-async def rnglocal(min: int=1, max: int=100, amount: int=3):
-    """Uses the local random number generator to generate numbers for you
-        Unlike the rng command this will never use random.org.
-        Params: min: Minimum value (inclusive)
-                max: Maximum value (inclusive)
-                amount: amount of Numbers to generate"""
-    result = await getrandints(minimum=min, maximum=max, amount=amount, force_builtin=True)
-    await bot.say(str(result))
+if provideRandomOrg:
+    @bot.command()
+    async def rnglocal(min: int=1, max: int=100, amount: int=3):
+        """Uses the local random number generator to generate numbers for you
+            Unlike the rng command this will never use random.org.
+            Params: min: Minimum value (inclusive)
+                    max: Maximum value (inclusive)
+                    amount: amount of Numbers to generate"""
+        result = await getrandints(minimum=min, maximum=max, amount=amount, force_builtin=True)
+        await bot.say(str(result))
 
 @bot.command()
 async def dice(amount: int=1):
@@ -188,13 +192,16 @@ async def shutdown(ctx):
 @bot.command(pass_context=True)
 async def hello(ctx):
     """Says Hello"""
-    await bot.say(f"Hello {ctx.message.author.mention}!")
+    await bot.say(f"Hello {ctx.message.author.mention}!", delete_after=10)
+    await asyncio.sleep(10)
+    await bot.delete_message(ctx.message)
 
 if provideSearch:
     @bot.command(pass_context=True)
     async def img(ctx, *, query: str=""):
         """Searches for an Image on Google and returns the first result"""
         query.strip()
+        await bot.delete_message(ctx.message)
         if not query:
             await bot.say("Please provide a search term")
             return
@@ -214,6 +221,7 @@ if provideSearch:
     async def rimg(ctx, *, query: str = ""):
         """Searches for an Image on Google and returns a random result"""
         query.strip()
+        await bot.delete_message(ctx.message)
         if not query:
             await bot.say("Please provide a search term")
             return
