@@ -13,6 +13,8 @@ except:
     {}
 import random
 import configparser
+from googleapiclient.discovery import build
+from pprint import pprint
 
 
 config = configparser.ConfigParser()
@@ -20,6 +22,7 @@ config.read('config.ini')
 login = config['Login']
 settings = config['Settings']
 rngcfg = config['Randomness']
+googlekey=settings.get('Google API Key', '')
 
 
 bot = commands.Bot(command_prefix=settings.get('prefix', '$'), description=settings.get('Bot Description', 'A WIP bot'), pm_help=True)
@@ -30,6 +33,8 @@ randomAPIKey = rngcfg.get('Random.org Key', '')
 randomAPIUse = rngcfg.getboolean('Use Random.org', False)
 
 # Do not edit anything after this line if you simply want to run this bot
+
+search_engine_id="018084019232060951019:hs5piey28-e"
 
 def _checkrandom():
     """Checks for the used randomness API"""
@@ -151,6 +156,26 @@ async def shutdown(ctx):
 async def hello(ctx):
     """Says Hello"""
     await bot.say(f"Hello {ctx.message.author.mention}!")
+
+@bot.command()
+async def img(query: str):
+    """Searches for an Image on Google and returns the first result"""
+    if googlekey=='':
+        await bot.say("No google api key specified!")
+        return
+
+    service = build("customsearch", "v1", developerKey=googlekey)
+
+    res=service.cse().list(
+        q=query,
+        cx=search_engine_id,
+        num=1,
+        fields="items(image(contextLink,thumbnailLink),link)",
+        safe='high',
+        searchType='image'
+    ).execute()
+    pprint(res)
+    await bot.say(f"Searched for {query}. Look to the console for the result")
 
 try:
     bot.run(loginID)
