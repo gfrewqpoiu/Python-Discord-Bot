@@ -104,10 +104,8 @@ async def on_ready():
     print('Logged in as')
     print(bot.user.name)
     print(bot.user.id)
-    mainchannel = bot.get_channel(mainChannelID)
-    joinmsg = None
     try:
-       joinmsg = await bot.send_message(mainchannel, 'I am online!')
+        mainchannel = bot.get_channel(mainChannelID)
     except:
         print("There was no Main Channel specified or I couldn't find it")
 
@@ -122,10 +120,6 @@ async def on_ready():
         print("Image Search deactivated")
 
     print('------')
-    if joinmsg != None:
-        await asyncio.sleep(10)
-        await bot.delete_message(joinmsg)
-
 
 @bot.command(pass_context=True)
 async def msgs(ctx):
