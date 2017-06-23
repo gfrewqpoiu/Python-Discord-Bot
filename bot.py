@@ -2,6 +2,8 @@
 import random
 import configparser
 import sys
+import os
+import checks
 try: #These are mandatory.
     import discord
     from discord.ext import commands
@@ -11,8 +13,7 @@ except:
     raise ModuleNotFoundError("You don't have Discord.py installed, install it with 'pip3 install --user --upgrade discord.py[voice]'")
 
 #Import the Config file
-config = configparser.ConfigParser()
-config.read('config.ini')
+config = checks.getconf()
 login = config['Login']
 settings = config['Settings']
 rngcfg = config['Randomness']
@@ -121,6 +122,12 @@ async def on_ready():
 
     print('------')
 
+    print("I am part of the following servers:")
+    for server in bot.servers:
+        print(f"{server.name}")
+
+    print('------')
+
 @bot.command(pass_context=True)
 async def msgs(ctx):
     """Calculates messages from you in this chat"""
@@ -169,8 +176,16 @@ async def dice(amount: int=1):
     """Uses a random number generator to roll dice for you
         Parameter amount: Amount of dice to roll"""
     result = await getrandints(amount=amount, force_builtin=False)
-    bot.say(str(result))
+    await bot.say(str(result))
 
+@bot.command(pass_context=True)
+async def hello(ctx):
+    """Says Hello"""
+    await bot.say(f"Hello {ctx.message.author.mention}!", delete_after=10)
+    await asyncio.sleep(10)
+    await bot.delete_message(ctx.message)
+
+@checks.is_owner()
 @bot.command(pass_context=True)
 async def shutdown(ctx):
     """Shuts the bot down"""
@@ -183,12 +198,6 @@ async def shutdown(ctx):
     except:
         {}
 
-@bot.command(pass_context=True)
-async def hello(ctx):
-    """Says Hello"""
-    await bot.say(f"Hello {ctx.message.author.mention}!", delete_after=10)
-    await asyncio.sleep(10)
-    await bot.delete_message(ctx.message)
 
 if provideSearch:
     @bot.command(pass_context=True)
@@ -231,6 +240,19 @@ if provideSearch:
                          url=f"https://www.google.com/search?q={queryurl}&source=lnms&tbm=isch")
 
         await bot.send_message(ctx.message.channel, embed=embed)
+
+@checks.is_owner()
+@bot.command(pass_context=True)
+async def restart(ctx):
+    """Restart the bot"""
+    await bot.say("Restarting", delete_after=3)
+    await asyncio.sleep(5)
+    print(f"Restarting on request of {ctx.message.author.name}!")
+    await bot.close()
+    try:
+        os.execl(sys.executable, sys.executable, *sys.argv)
+    except:
+        pass
 
 try:
     bot.run(loginID)
