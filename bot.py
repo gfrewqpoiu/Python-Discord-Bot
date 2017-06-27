@@ -205,11 +205,14 @@ async def update(ctx):
     """Updates the bot with the newest Version from GitHub
         Only works for the bot owner account"""
     await bot.say("Ok, I am updating from GitHub")
-    try:
-        output = subprocess.run(["git", "pull"], stdout=subprocess.PIPE)
-        await bot.say(f"`{output.stdout.decode('utf-8')}`")
-    except:
-        await bot.say("That didn't work for some reason")
+    #try:
+    output = subprocess.run(["git", "pull"], stdout=subprocess.PIPE)
+    embed = discord.Embed()
+    embed.set_author(name="Output:")
+    embed.set_footer(text=output.stdout.decode('utf-8'))
+    await bot.send_message(ctx.message.channel, embed=embed)
+    #except:
+        #await bot.say("That didn't work for some reason")
 
 if provideSearch:
     @bot.command(pass_context=True)
