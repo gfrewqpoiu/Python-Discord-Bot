@@ -208,7 +208,7 @@ async def update(ctx):
     await bot.say("Ok, I am updating from GitHub")
     try:
         output = subprocess.run(["git", "pull"], stdout=subprocess.PIPE)
-        await bot.say(f"`{output.stdout}`")
+        await bot.say(f"`{output.stdout.decode('utf-8')}`")
     except:
         await bot.say("That didn't work for some reason")
 
