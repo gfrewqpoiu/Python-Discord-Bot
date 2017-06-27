@@ -3,6 +3,7 @@ import random
 import configparser
 import sys
 import os
+import subprocess
 import checks
 try: #These are mandatory.
     import discord
@@ -198,6 +199,16 @@ async def shutdown(ctx):
     except:
         {}
 
+@checks.is_owner()
+@bot.command(pass_context=True)
+async def update(ctx):
+    """Updates the bot with the newest Version from Github"""
+    await bot.say("Ok, I am updating from Github")
+    try:
+        output = await subprocess.run(["git", "pull"], stdout=subprocess.PIPE)
+        await bot.say(str(output))
+    except:
+        await bot.say("That didn't work for some reason")
 
 if provideSearch:
     @bot.command(pass_context=True)
