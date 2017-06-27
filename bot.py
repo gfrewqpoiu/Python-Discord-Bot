@@ -54,7 +54,6 @@ if usegoogleAPI:
             pass
 
 if provideSearch:
-    from urllib import parse
     searchservice = build("customsearch", "v1", developerKey=googlekey)
 
 
