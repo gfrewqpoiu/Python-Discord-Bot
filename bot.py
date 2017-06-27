@@ -145,7 +145,8 @@ async def msgs(ctx):
 
 @bot.command(pass_context=True)
 async def timer(ctx, seconds: int=5):
-    """Pings you when the given amount of seconds is over"""
+    """Pings you when the given amount of seconds is over
+        This doesn't work over restarts"""
     await bot.say("Okay, I will remind you!", delete_after=seconds)
     await asyncio.sleep(seconds)
     await bot.say(f'{ctx.message.author.mention}, your {seconds} seconds timer is up', delete_after=10)
@@ -202,8 +203,9 @@ async def shutdown(ctx):
 @checks.is_owner()
 @bot.command(pass_context=True)
 async def update(ctx):
-    """Updates the bot with the newest Version from Github"""
-    await bot.say("Ok, I am updating from Github")
+    """Updates the bot with the newest Version from GitHub
+        Only works for the bot owner account"""
+    await bot.say("Ok, I am updating from GitHub")
     try:
         output = subprocess.run(["git", "pull"], stdout=subprocess.PIPE)
         await bot.say(f"`{output.stdout}`")
