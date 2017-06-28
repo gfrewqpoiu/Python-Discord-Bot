@@ -282,7 +282,9 @@ async def restart(ctx):
 
 @bot.command()
 async def shorten(url: str):
-    """Shortenes the given URL with v.gd"""
+    """Shortens the given URL with v.gd
+    Requires the URL to begin with e.g https://
+    data:// is unsupported"""
     if not is_valid_url(url=url):
         await bot.say("No valid URL specified!")
         return
