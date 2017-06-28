@@ -5,6 +5,8 @@ import sys
 import os
 import subprocess
 import checks
+import urllib
+import pprint
 try: #These are mandatory.
     import discord
     from discord.ext import commands
@@ -12,6 +14,11 @@ try: #These are mandatory.
     import asyncio
 except:
     raise ModuleNotFoundError("You don't have Discord.py installed, install it with 'pip3 install --user --upgrade discord.py[voice]'")
+
+try:
+    import requests
+except:
+    print("You don't have requests installed. No URL shortening or Search commands will work")
 
 #Import the Config file
 config = checks.getconf()
@@ -96,7 +103,11 @@ async def getrandints(minimum: int=1, maximum: int=6, amount: int=1, force_built
     else:
         raise ValueError("You need to request at least one and a max of 50 ints")
 
-
+def is_valid_url(url):
+    qualifying = ('scheme', 'netloc')
+    token = parse.urlparse(url)
+    return all([getattr(token, qualifying_attr)
+                for qualifying_attr in qualifying])
 
 bot = commands.Bot(command_prefix=settings.get('prefix', '$'), description=settings.get('Bot Description', 'A WIP bot'), pm_help=True)
 
@@ -268,6 +279,17 @@ async def restart(ctx):
         os.execl(sys.executable, sys.executable, *sys.argv)
     except:
         pass
+
+@bot.command()
+async def shorten(url: str):
+    """Shortenes the given URL with v.gd"""
+    if not is_valid_url(url=url):
+        await bot.say("No valid URL specified!")
+        return
+    urltoshorten = parse.quote(string=url)
+    result = requests.get(f"https://v.gd/create.php?format=simple&url={urltoshorten}")
+    await bot.say(f"{result.text}")
+
 
 try:
     bot.run(loginID)
