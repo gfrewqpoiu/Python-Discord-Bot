@@ -162,7 +162,7 @@ async def msgs(ctx):
     await bot.reply(f'You have {counter} messages.', delete_after=10)
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, alias="remind")
 async def timer(ctx, seconds: int=5):
     """Pings you when the given amount of seconds is over
         This doesn't work over restarts"""
@@ -211,7 +211,7 @@ async def hello(ctx):
 
 
 @checks.is_owner()
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, hidden=True)
 async def shutdown(ctx):
     """Shuts the bot down"""
     await bot.say("Shutting down!", delete_after=3)
@@ -225,7 +225,7 @@ async def shutdown(ctx):
 
 
 @checks.is_owner()
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, hidden=True)
 async def update(ctx):
     """Updates the bot with the newest Version from GitHub
         Only works for the bot owner account"""
@@ -283,7 +283,7 @@ if provideSearch:
 
 
 @checks.is_owner()
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, hidden=True)
 async def restart(ctx):
     """Restart the bot"""
     await bot.say("Restarting", delete_after=3)
