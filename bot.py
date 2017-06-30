@@ -162,7 +162,7 @@ async def msgs(ctx):
     await bot.reply(f'You have {counter} messages.', delete_after=10)
 
 
-@bot.command(pass_context=True, alias="remind")
+@bot.command(pass_context=True, aliases=['remind'])
 async def timer(ctx, seconds: int=5):
     """Pings you when the given amount of seconds is over
         This doesn't work over restarts"""
@@ -172,7 +172,7 @@ async def timer(ctx, seconds: int=5):
     await bot.delete_message(ctx.message)
 
 
-@bot.command()
+@bot.command(aliases=['random', 'randint'])
 async def rng(min: int=1, max: int=6, amount: int=3):
     """Uses a random number generator to generate numbers for you
         If the bot owner has specified a random.org API key the numbers will come from there.
@@ -183,7 +183,7 @@ async def rng(min: int=1, max: int=6, amount: int=3):
     await bot.say(str(result))
 
 if provideRandomOrg:
-    @bot.command()
+    @bot.command(aliases=['randomlocal', 'rngl', 'randlocal'])
     async def rnglocal(min: int=1, max: int=100, amount: int=3):
         """Uses the local random number generator to generate numbers for you
             Unlike the rng command this will never use random.org.
@@ -202,7 +202,7 @@ async def dice(amount: int=1):
     await bot.say(str(result))
 
 
-@bot.command(pass_context=True)
+@bot.command(pass_context=True, aliases=['hi'])
 async def hello(ctx):
     """Says Hello"""
     await bot.say(f"Hello {ctx.message.author.mention}!", delete_after=10)
@@ -240,7 +240,7 @@ async def update(ctx):
         await bot.say("That didn't work for some reason")
 
 if provideSearch:
-    @bot.command(pass_context=True)
+    @bot.command(pass_context=True, aliases=['image'])
     async def img(ctx, *, query: str=""):
         """Searches for an Image on Google and returns the first result"""
         query.strip()
@@ -260,7 +260,7 @@ if provideSearch:
 
         await bot.send_message(ctx.message.channel, embed=embed)
 
-    @bot.command(pass_context=True)
+    @bot.command(pass_context=True, aliases=['randomimage'])
     async def rimg(ctx, *, query: str=""):
         """Searches for an Image on Google and returns a random result"""
         query.strip()
@@ -283,7 +283,7 @@ if provideSearch:
 
 
 @checks.is_owner()
-@bot.command(pass_context=True, hidden=True)
+@bot.command(pass_context=True, hidden=True, aliases=['reboot'])
 async def restart(ctx):
     """Restart the bot"""
     await bot.say("Restarting", delete_after=3)
@@ -296,7 +296,7 @@ async def restart(ctx):
         pass
 
 
-@bot.command()
+@bot.command(aliases=['vgd'])
 async def shorten(url: str):
     """Shortens the given URL with v.gd
     Requires the URL to begin with e.g https://
