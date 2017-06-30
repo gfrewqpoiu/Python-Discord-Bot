@@ -261,7 +261,7 @@ if provideSearch:
         await bot.send_message(ctx.message.channel, embed=embed)
 
     @bot.command(pass_context=True)
-    async def rimg(ctx, *, query: str = ""):
+    async def rimg(ctx, *, query: str=""):
         """Searches for an Image on Google and returns a random result"""
         query.strip()
         await bot.delete_message(ctx.message)
