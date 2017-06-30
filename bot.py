@@ -7,27 +7,28 @@ import subprocess
 import checks
 import urllib
 import pprint
-try: #These are mandatory.
+try:  # These are mandatory.
     import discord
     from discord.ext import commands
     from discord import utils
     import asyncio
 except:
-    raise ModuleNotFoundError("You don't have Discord.py installed, install it with 'pip3 install --user --upgrade discord.py[voice]'")
+    raise ModuleNotFoundError(
+        "You don't have Discord.py installed, install it with 'pip3 install --user --upgrade discord.py[voice]'")
 
 try:
     import requests
 except:
     print("You don't have requests installed. No URL shortening or Search commands will work")
 
-#Import the Config file
+# Import the Config file
 config = checks.getconf()
 login = config['Login']
 settings = config['Settings']
 rngcfg = config['Randomness']
 searchcfg = config['Search']
 
-#Setup some Variables
+# Setup some Variables
 userandomAPI = rngcfg.getboolean('Use Random.org', False)
 usegoogleAPI = searchcfg.getboolean('Use Google Image Search', False)
 loginID = login.get('Login Token')
@@ -36,7 +37,7 @@ provideSearch = False
 provideRandomOrg = False
 mainchannel = None
 
-#Check for optional features
+# Check for optional features
 if userandomAPI:
     randomAPIKey = rngcfg.get('Random.org Key', '')
     randomAPIKey.strip()
@@ -64,7 +65,7 @@ if provideSearch:
     searchservice = build("customsearch", "v1", developerKey=googlekey)
 
 
-#Utility functions
+# Utility functions
 async def getimage(query: str, start: int=1):
     return searchservice.cse().list(
         q=query,
@@ -76,11 +77,13 @@ async def getimage(query: str, start: int=1):
         start=start
     ).execute()
 
+
 async def getrandints(minimum: int=1, maximum: int=6, amount: int=1, force_builtin: bool=True):
-    if minimum < maximum and 50>=amount>0:
+    if minimum < maximum and 50 >= amount > 0:
         if provideRandomOrg and not force_builtin:
             try:
-                results = trandom.generate_integers(n=amount, min=minimum, max=maximum)
+                results = trandom.generate_integers(
+                    n=amount, min=minimum, max=maximum)
                 result = ''.join(str(results))
                 return result.strip() + " provided by random.org"
 
@@ -101,7 +104,9 @@ async def getrandints(minimum: int=1, maximum: int=6, amount: int=1, force_built
     elif minimum >= maximum:
         raise ValueError("Minimum needs to be smaller than Maximum")
     else:
-        raise ValueError("You need to request at least one and a max of 50 ints")
+        raise ValueError(
+            "You need to request at least one and a max of 50 ints")
+
 
 def is_valid_url(url):
     qualifying = ('scheme', 'netloc')
@@ -109,7 +114,10 @@ def is_valid_url(url):
     return all([getattr(token, qualifying_attr)
                 for qualifying_attr in qualifying])
 
-bot = commands.Bot(command_prefix=settings.get('prefix', '$'), description=settings.get('Bot Description', 'A WIP bot'), pm_help=True)
+
+bot = commands.Bot(command_prefix=settings.get('prefix', '$'),
+                   description=settings.get('Bot Description', 'A WIP bot'), pm_help=True)
+
 
 @bot.event
 async def on_ready():
@@ -139,6 +147,7 @@ async def on_ready():
 
     print('------')
 
+
 @bot.command(pass_context=True)
 async def msgs(ctx):
     """Calculates messages from you in this chat"""
@@ -162,6 +171,7 @@ async def timer(ctx, seconds: int=5):
     await bot.say(f'{ctx.message.author.mention}, your {seconds} seconds timer is up', delete_after=10)
     await bot.delete_message(ctx.message)
 
+
 @bot.command()
 async def rng(min: int=1, max: int=6, amount: int=3):
     """Uses a random number generator to generate numbers for you
@@ -183,6 +193,7 @@ if provideRandomOrg:
         result = await getrandints(minimum=min, maximum=max, amount=amount, force_builtin=True)
         await bot.say(str(result))
 
+
 @bot.command()
 async def dice(amount: int=1):
     """Uses a random number generator to roll dice for you
@@ -190,12 +201,14 @@ async def dice(amount: int=1):
     result = await getrandints(amount=amount, force_builtin=False)
     await bot.say(str(result))
 
+
 @bot.command(pass_context=True)
 async def hello(ctx):
     """Says Hello"""
     await bot.say(f"Hello {ctx.message.author.mention}!", delete_after=10)
     await asyncio.sleep(10)
     await bot.delete_message(ctx.message)
+
 
 @checks.is_owner()
 @bot.command(pass_context=True)
@@ -209,6 +222,7 @@ async def shutdown(ctx):
         sys.exit()
     except:
         {}
+
 
 @checks.is_owner()
 @bot.command(pass_context=True)
@@ -242,7 +256,7 @@ if provideSearch:
         embed = discord.Embed()
         embed.set_image(url=str(link))
         embed.set_author(name=f"Image Search for {query} by {ctx.message.author.name}",
-            url=f"https://www.google.com/search?q={queryurl}&source=lnms&tbm=isch")
+                         url=f"https://www.google.com/search?q={queryurl}&source=lnms&tbm=isch")
 
         await bot.send_message(ctx.message.channel, embed=embed)
 
@@ -267,6 +281,7 @@ if provideSearch:
 
         await bot.send_message(ctx.message.channel, embed=embed)
 
+
 @checks.is_owner()
 @bot.command(pass_context=True)
 async def restart(ctx):
@@ -280,6 +295,7 @@ async def restart(ctx):
     except:
         pass
 
+
 @bot.command()
 async def shorten(url: str):
     """Shortens the given URL with v.gd
@@ -289,11 +305,13 @@ async def shorten(url: str):
         await bot.say("No valid URL specified!")
         return
     urltoshorten = parse.quote(string=url)
-    result = requests.get(f"https://v.gd/create.php?format=simple&url={urltoshorten}")
+    result = requests.get(
+        f"https://v.gd/create.php?format=simple&url={urltoshorten}")
     await bot.say(f"{result.text}")
 
 
 try:
     bot.run(loginID)
 except:
-    raise ValueError("Couldn't log in with the given credentials, please check those in config.ini and your connection and try again!")
+    raise ValueError(
+        "Couldn't log in with the given credentials, please check those in config.ini and your connection and try again!")
