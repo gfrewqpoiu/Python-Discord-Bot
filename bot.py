@@ -325,7 +325,7 @@ async def shorten(url: str):
     await bot.say(f"{result}")
 
 
-@bot.command(aliases=['isgd', 'shortendl'])
+@bot.command(aliases=['isgd', 'shortendl'], hidden=True)
 async def shortendirect(url: str):
     """Shortens the given URL with is.gd for a direct link.
     Requires the URL to begin with e.g https://
