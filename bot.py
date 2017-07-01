@@ -36,7 +36,7 @@ mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 mainchannel = None
-version = "1.0.2"
+bot_version = "1.0.3"
 
 # Check for optional features
 if userandomAPI:
@@ -115,17 +115,20 @@ def is_valid_url(url):
     return all([getattr(token, qualifying_attr)
                 for qualifying_attr in qualifying])
 
+
 async def _shorten(url, direct=False):
     """Shortens a given URL using v.gd
     if direct is set to true it will use is.gd for a direct link instead"""
 
     if direct:
         url = parse.quote(string=url)
-        result = requests.get(f"https://is.gd/create.php?format=simple&url={url}")
+        result = requests.get(
+            f"https://is.gd/create.php?format=simple&url={url}")
         return result.text
     else:
         url = parse.quote(string=url)
-        result = requests.get(f"https://v.gd/create.php?format=simple&url={url}")
+        result = requests.get(
+            f"https://v.gd/create.php?format=simple&url={url}")
         return result.text
 
 bot = commands.Bot(command_prefix=settings.get('prefix', '$'),
@@ -137,7 +140,7 @@ async def on_ready():
     print('Logged in as')
     print(bot.user.name)
     print(bot.user.id)
-    print(f"Using Bot Version: {version}")
+    print(f"Using Bot Version: {bot_version}")
     try:
         mainchannel = bot.get_channel(mainChannelID)
     except:
@@ -321,6 +324,7 @@ async def shorten(url: str):
     result = await _shorten(url)
     await bot.say(f"{result}")
 
+
 @bot.command(aliases=['isgd', 'shortendl'])
 async def shortendirect(url: str):
     """Shortens the given URL with is.gd for a direct link.
@@ -333,10 +337,11 @@ async def shortendirect(url: str):
     result = await _shorten(url, direct=True)
     await bot.say(f"{result}")
 
+
 @bot.command(hidden=True)
 async def version():
     """Gives back the bot version"""
-    await bot.say(version)
+    await bot.say(bot_version)
 
 
 try:
