@@ -36,6 +36,7 @@ mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 mainchannel = None
+version = "1.0.0"
 
 # Check for optional features
 if userandomAPI:
@@ -114,6 +115,18 @@ def is_valid_url(url):
     return all([getattr(token, qualifying_attr)
                 for qualifying_attr in qualifying])
 
+async def _shorten(url, direct=False):
+    """Shortens a given URL using v.gd
+    if direct is set to true it will use is.gd for a direct link instead"""
+
+    if direct:
+        url = parse.quote(string=url)
+        result = requests.get(f"https://is.gd/create.php?format=simple&url={url}")
+        return result.text
+    else:
+        url = parse.quote(string=url)
+        result = requests.get(f"https://v.gd/create.php?format=simple&url={url}")
+        return result.text
 
 bot = commands.Bot(command_prefix=settings.get('prefix', '$'),
                    description=settings.get('Bot Description', 'A WIP bot'), pm_help=True)
@@ -124,6 +137,7 @@ async def on_ready():
     print('Logged in as')
     print(bot.user.name)
     print(bot.user.id)
+    print(f"Using Bot Version: {version}")
     try:
         mainchannel = bot.get_channel(mainChannelID)
     except:
@@ -304,10 +318,25 @@ async def shorten(url: str):
     if not is_valid_url(url=url):
         await bot.say("No valid URL specified!")
         return
-    urltoshorten = parse.quote(string=url)
-    result = requests.get(
-        f"https://v.gd/create.php?format=simple&url={urltoshorten}")
-    await bot.say(f"{result.text}")
+    result = await _shorten(url)
+    await bot.say(f"{result}")
+
+@bot.command(aliases=['isgd', 'shortendl'])
+async def shortendirect(url: str):
+    """Shortens the given URL with is.gd for a direct link.
+    Requires the URL to begin with e.g https://
+    data:// is unsupported.
+    Shorten Command should be preferred."""
+    if not is_valid_url(url=url):
+        await bot.say("No valid URL specified!")
+        return
+    result = await _shorten(url, direct=True)
+    await bot.say(f"{result}")
+
+@bot.command()
+async def version():
+    """Gives back the bot version"""
+    await bot.say(f"{version}")
 
 
 try:
