@@ -334,7 +334,7 @@ async def shortendirect(url: str):
     if not is_valid_url(url=url):
         await bot.say("No valid URL specified!")
         return
-    result = await _shorten(url, direct=True)
+    result = await _shorten(url)  # ,direct=True)
     await bot.say(f"{result}")
 
 
