@@ -36,7 +36,7 @@ mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 mainchannel = None
-version = "1.0.0"
+version = "1.0.1"
 
 # Check for optional features
 if userandomAPI:
@@ -333,7 +333,7 @@ async def shortendirect(url: str):
     result = await _shorten(url, direct=True)
     await bot.say(f"{result}")
 
-@bot.command()
+@bot.command(hidden=True)
 async def version():
     """Gives back the bot version"""
     await bot.say(f"{version}")
