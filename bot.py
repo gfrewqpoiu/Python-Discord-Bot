@@ -36,7 +36,7 @@ mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 mainchannel = None
-bot_version = "1.0.3"
+bot_version = "1.0.4"
 
 # Check for optional features
 if userandomAPI:
