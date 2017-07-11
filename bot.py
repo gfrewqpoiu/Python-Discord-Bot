@@ -36,7 +36,7 @@ mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 mainchannel = None
-bot_version = "1.0.4"
+bot_version = "1.1.0"
 
 # Check for optional features
 if userandomAPI:
@@ -212,10 +212,11 @@ if provideRandomOrg:
 
 
 @bot.command()
-async def dice(amount: int=1):
+async def dice(amount: int=1, sides: int=6):
     """Uses a random number generator to roll dice for you
-        Parameter amount: Amount of dice to roll"""
-    result = await getrandints(amount=amount, force_builtin=False)
+        Parameters amount: Amount of dice to roll
+                   sides: how many sides the dice has."""
+    result = await getrandints(amount=amount, max=sides, force_builtin=False)
     await bot.say(str(result))
 
 
