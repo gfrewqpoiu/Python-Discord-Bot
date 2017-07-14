@@ -7,6 +7,8 @@ import subprocess
 import checks
 import urllib
 import pprint
+import database
+
 try:  # These are mandatory.
     import discord
     from discord.ext import commands
@@ -37,6 +39,7 @@ provideSearch = False
 provideRandomOrg = False
 mainchannel = None
 bot_version = "1.1.0"
+db = database.database
 
 # Check for optional features
 if userandomAPI:
@@ -137,6 +140,11 @@ bot = commands.Bot(command_prefix=settings.get('prefix', '$'),
 
 @bot.event
 async def on_ready():
+    try:
+        db.connect()
+        print("Using Database!")
+    except:
+        print("I couldn't access the Database. This will lead to errors. Check the Info immediately.")
     print('Logged in as')
     print(bot.user.name)
     print(bot.user.id)
@@ -236,6 +244,7 @@ async def shutdown(ctx):
     await asyncio.sleep(5)
     print(f"Shutting down on request of {ctx.message.author.name}!")
     await bot.close()
+    await database.shutdown()
     try:
         sys.exit()
     except:
