@@ -38,7 +38,7 @@ provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
 mainchannel = None
-bot_version = "2.0.0"
+bot_version = "2.0.1"
 
 # Check for optional features
 if userandomAPI:
