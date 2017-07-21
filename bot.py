@@ -399,8 +399,8 @@ if provideYoutubedl:
     @bot.command(pass_context=True, hidden=True, aliases=['dlaul'])
     async def downloadaudioandupload(ctx, url: str):
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-        await bot.say("Done!")
+            await ydl.download([url])
+            await bot.say("Done!")
 
 
     @checks.is_owner()
@@ -408,8 +408,8 @@ if provideYoutubedl:
     async def downloadvideoandupload(ctx, url: str):
         await bot.say("Okay, downloading that, converting to mp4 and uploading")
         with youtube_dl.YoutubeDL(ydlv_opts) as ydl:
-            ydl.download([url])
-        await bot.say("Done!")
+            await ydl.download([url])
+            await bot.say("Done!")
 
 
 try:
