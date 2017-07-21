@@ -176,7 +176,7 @@ def _download(url, isVideo: bool=True):
 async def download(url, loop=None):
     if loop is None:
         loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, download, url)
+    await loop.run_in_executor(None, _download, url)
 
 async def watchdog():
     while True:
@@ -420,7 +420,7 @@ if provideYoutubedl:
     async def downloadaudioandupload(ctx, url: str):
         loop = asyncio.get_event_loop()
         background_task = loop.create_task(watchdog())
-        loop.run_until_complete(download(url, loop))
+        await loop.run_until_complete(download(url, loop))
         background_task.cancel()
         with suppress(asyncio.CancelledError):
             loop.run_until_complete(background_task)
