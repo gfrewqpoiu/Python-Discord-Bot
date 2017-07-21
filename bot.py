@@ -5,9 +5,11 @@ import configparser
 import sys
 import os
 import subprocess
+import multiprocessing
 import checks
 import urllib
 import pprint
+import concurrent.futures
 try:  # These are mandatory.
     import discord
     from discord.ext import commands
@@ -160,6 +162,16 @@ ydlv_opts = {
             'logger': MyLogger(),
             'progress_hooks': [my_hook],
         }
+
+def _download(url, isVideo: bool=True):
+    if isVideo:
+        with youtube_dl.YoutubeDL(ydlv_opts) as ydl:
+            ydl.download([url])
+            return url
+    else:
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+            return url
 
 async def _shorten(url, direct=False):
     """Shortens a given URL using v.gd
@@ -407,11 +419,9 @@ if provideYoutubedl:
     @bot.command(pass_context=True, hidden=True, aliases=['dlvul', 'dlul'])
     async def downloadvideoandupload(ctx, url: str):
         await bot.say("Okay, downloading that, converting to mp4 and uploading")
-        with youtube_dl.YoutubeDL(ydlv_opts) as ydl:
-            await ydl.download([url])
-            await bot.say("Done!")
-
-
+        rclonestr = '"rclone move {} Drive:Upload"'
+        ytdlstr = f'youtube-dl -o "%(title)s.%(ext)s" --recode-video mp4 --exec {rclonestr} {url}'
+        subprocess.Popen(args=ytdlstr, shell=True)
 try:
     bot.run(loginID)
 except:
