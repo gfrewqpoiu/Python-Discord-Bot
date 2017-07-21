@@ -9,7 +9,7 @@ import multiprocessing
 import checks
 import urllib
 import pprint
-import concurrent.futures
+from contextlib import suppress
 try:  # These are mandatory.
     import discord
     from discord.ext import commands
@@ -173,6 +173,16 @@ def _download(url, isVideo: bool=True):
             ydl.download([url])
             return url
 
+async def download(url, loop=None):
+    if loop is None:
+        loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, download, url)
+
+async def watchdog():
+    while True:
+        await asyncio.sleep(3)
+        print('\nEvent loop running...')
+
 async def _shorten(url, direct=False):
     """Shortens a given URL using v.gd
     if direct is set to true it will use is.gd for a direct link instead"""
@@ -190,7 +200,6 @@ async def _shorten(url, direct=False):
 
 bot = commands.Bot(command_prefix=settings.get('prefix', '$'),
                    description=settings.get('Bot Description', 'A WIP bot'), pm_help=True)
-
 
 @bot.event
 async def on_ready():
@@ -225,7 +234,6 @@ async def on_ready():
         print(f"{server.name}")
 
     print('------')
-
 
 @bot.command(pass_context=True)
 async def msgs(ctx):
@@ -410,9 +418,12 @@ if provideYoutubedl:
     @checks.is_owner()
     @bot.command(pass_context=True, hidden=True, aliases=['dlaul'])
     async def downloadaudioandupload(ctx, url: str):
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            await ydl.download([url])
-            await bot.say("Done!")
+        loop = asyncio.get_event_loop()
+        background_task = loop.create_task(watchdog())
+        loop.run_until_complete(download(url, loop))
+        background_task.cancel()
+        with suppress(asyncio.CancelledError):
+            loop.run_until_complete(background_task)
 
 
     @checks.is_owner()
