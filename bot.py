@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import unicode_literals
 import random
 import configparser
 import sys
@@ -35,8 +36,9 @@ loginID = login.get('Login Token')
 mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
+provideYoutubedl = False
 mainchannel = None
-bot_version = "1.1.0"
+bot_version = "2.0.0_dev1"
 
 # Check for optional features
 if userandomAPI:
@@ -64,6 +66,22 @@ if usegoogleAPI:
 
 if provideSearch:
     searchservice = build("customsearch", "v1", developerKey=googlekey)
+
+try:
+    import youtube_dl
+    provideYoutubedl = True
+except:
+    pass
+
+class MyLogger(object):
+    def debug(self, msg):
+        pass
+
+    def warning(self, msg):
+        pass
+
+    def error(self, msg):
+        print(msg)
 
 
 # Utility functions
@@ -116,6 +134,33 @@ def is_valid_url(url):
                 for qualifying_attr in qualifying])
 
 
+def my_hook(d):
+    if d['status'] == 'finished':
+        print('Done downloading, now uploading...')
+
+ydl_opts = {
+            'postprocessors': [{
+                'key': 'ExecAfterDownload',
+                'exec_cmd': 'rclone move {} Drive:Upload',
+            }],
+            'logger': MyLogger(),
+            'progress_hooks': [my_hook],
+        }
+
+ydlv_opts = {
+            'postprocessors': [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            },
+            {
+                'key': 'ExecAfterDownload',
+                'exec_cmd': 'rclone move {} Drive:Upload',
+            }
+            ],
+            'logger': MyLogger(),
+            'progress_hooks': [my_hook],
+        }
+
 async def _shorten(url, direct=False):
     """Shortens a given URL using v.gd
     if direct is set to true it will use is.gd for a direct link instead"""
@@ -155,6 +200,11 @@ async def on_ready():
         print("Image Search activated")
     else:
         print("Image Search deactivated")
+
+    if provideYoutubedl:
+        print("YouTube.dl detected")
+    else:
+        print("No YouTube.dl detected")
 
     print('------')
 
@@ -343,6 +393,23 @@ async def shortendirect(url: str):
 async def version():
     """Gives back the bot version"""
     await bot.say(bot_version)
+
+if provideYoutubedl:
+    @checks.is_owner()
+    @bot.command(pass_context=True, hidden=True, aliases=['dlaul'])
+    async def downloadaudioandupload(ctx, url: str):
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+        await bot.say("Done!")
+
+
+    @checks.is_owner()
+    @bot.command(pass_context=True, hidden=True, aliases=['dlvul', 'dlul'])
+    async def downloadvideoandupload(ctx, url: str):
+        await bot.say("Okay, downloading that, converting to mp4 and uploading")
+        with youtube_dl.YoutubeDL(ydlv_opts) as ydl:
+            ydl.download([url])
+        await bot.say("Done!")
 
 
 try:
