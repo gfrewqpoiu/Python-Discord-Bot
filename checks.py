@@ -9,6 +9,10 @@ def getconf():
     return config
 
 
+def getdb():
+    return config['Database']
+
+
 settings = config['Settings']
 
 configOwner = settings.get('Owner ID')

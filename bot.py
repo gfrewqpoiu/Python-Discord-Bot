@@ -38,8 +38,8 @@ mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 mainchannel = None
-bot_version = "1.1.0"
-db = database.database
+bot_version = "2.0.0_DatabaseTest"
+db = database.db
 
 # Check for optional features
 if userandomAPI:
@@ -140,11 +140,8 @@ bot = commands.Bot(command_prefix=settings.get('prefix', '$'),
 
 @bot.event
 async def on_ready():
-    try:
-        db.connect()
-        print("Using Database!")
-    except:
-        print("I couldn't access the Database. This will lead to errors. Check the Info immediately.")
+    db.connect()
+    database.createTables()
     print('Logged in as')
     print(bot.user.name)
     print(bot.user.id)
@@ -279,6 +276,7 @@ if provideSearch:
         queryurl = parse.quote_plus(query)
         res = await getimage(query)
         link = res['items'][0]['link']
+        database.saveImage(ctx, link)
 
         embed = discord.Embed()
         embed.set_image(url=str(link))
@@ -300,6 +298,7 @@ if provideSearch:
         start = await getrandints(maximum=50)
         res = await getimage(query, start=int(start))
         link = res['items'][0]['link']
+        database.saveImage(ctx, link, query)
 
         embed = discord.Embed()
         embed.set_image(url=str(link))

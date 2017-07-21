@@ -3,3 +3,6 @@
 
 config.ini
 __pycache__/
+/bot.db
+/bot.db-shm
+/bot.db-wal
