@@ -173,16 +173,6 @@ def _download(url, isVideo: bool=True):
             ydl.download([url])
             return url
 
-async def download(url, loop=None):
-    if loop is None:
-        loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, _download, url)
-
-async def watchdog():
-    while True:
-        await asyncio.sleep(3)
-        print('\nEvent loop running...')
-
 async def _shorten(url, direct=False):
     """Shortens a given URL using v.gd
     if direct is set to true it will use is.gd for a direct link instead"""
@@ -418,21 +408,14 @@ if provideYoutubedl:
     @checks.is_owner()
     @bot.command(pass_context=True, hidden=True, aliases=['dlaul'])
     async def downloadaudioandupload(ctx, url: str):
-        loop = asyncio.get_event_loop()
-        background_task = loop.create_task(watchdog())
-        await loop.run_until_complete(download(url, loop))
-        background_task.cancel()
-        with suppress(asyncio.CancelledError):
-            loop.run_until_complete(background_task)
-
+        await bot.loop.run_in_executor(None, _download, url, isVideo=False)
+        await bot.say('Done!')
 
     @checks.is_owner()
     @bot.command(pass_context=True, hidden=True, aliases=['dlvul', 'dlul'])
     async def downloadvideoandupload(ctx, url: str):
-        await bot.say("Okay, downloading that, converting to mp4 and uploading")
-        rclonestr = '"rclone move {} Drive:Upload"'
-        ytdlstr = f'youtube-dl -o "%(title)s.%(ext)s" --recode-video mp4 --exec {rclonestr} {url}'
-        subprocess.Popen(args=ytdlstr, shell=True)
+        await bot.loop.run_in_executor(None, _download, url, isVideo=True)
+        await bot.say('Done!')
 try:
     bot.run(loginID)
 except:
