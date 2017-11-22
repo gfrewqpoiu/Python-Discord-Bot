@@ -408,12 +408,14 @@ if provideYoutubedl:
     @checks.is_owner()
     @bot.command(pass_context=True, hidden=True, aliases=['dlaul'])
     async def downloadaudioandupload(ctx, url: str):
+        await bot.say(f"Okay I will download the audio at {url} and upload it, be patient!")
         await bot.loop.run_in_executor(None, _download, url, isVideo=False)
         await bot.say('Done!')
 
     @checks.is_owner()
     @bot.command(pass_context=True, hidden=True, aliases=['dlvul', 'dlul'])
     async def downloadvideoandupload(ctx, url: str):
+        await bot.say(f"Okay I will download the video at {url} and upload it, be patient!")
         await bot.loop.run_in_executor(None, _download, url, isVideo=True)
         await bot.say('Done!')
 try:
