@@ -40,7 +40,7 @@ provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
 mainchannel = None
-bot_version = "2.0.2"
+bot_version = "2.0.3"
 
 # Check for optional features
 if userandomAPI:
@@ -164,14 +164,14 @@ ydlv_opts = {
         }
 
 def _download(url, isVideo: bool=True):
-    if isVideo:
-        with youtube_dl.YoutubeDL(ydlv_opts) as ydl:
-            ydl.download([url])
-            return url
-    else:
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-            return url
+    with youtube_dl.YoutubeDL(ydlv_opts) as ydl:
+        ydl.download([url])
+        return url
+
+def _downloada(url):
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+        return url
 
 async def _shorten(url, direct=False):
     """Shortens a given URL using v.gd
@@ -408,12 +408,14 @@ if provideYoutubedl:
     @checks.is_owner()
     @bot.command(pass_context=True, hidden=True, aliases=['dlaul'])
     async def downloadaudioandupload(ctx, url: str):
-        await bot.loop.run_in_executor(None, _download, url)
+        await bot.say(f"Okay i am downloading the audio at {url} and uploading it to your drive!")
+        await bot.loop.run_in_executor(None, _downloada, url)
         await bot.say('Done!')
 
     @checks.is_owner()
     @bot.command(pass_context=True, hidden=True, aliases=['dlvul', 'dlul'])
     async def downloadvideoandupload(ctx, url: str):
+        await bot.say(f"Okay i am downloading the video at {url} and uploading it to your drive!")
         await bot.loop.run_in_executor(None, _download, url)
         await bot.say('Done!')
 try:
