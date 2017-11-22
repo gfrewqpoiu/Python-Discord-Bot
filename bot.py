@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import unicode_literals
 import random
-import configparser
 import sys
 import os
 import subprocess
-import multiprocessing
 import checks
-import urllib
-import pprint
-from contextlib import suppress
 try:  # These are mandatory.
     import discord
     from discord.ext import commands
@@ -17,7 +12,8 @@ try:  # These are mandatory.
     import asyncio
 except:
     raise ModuleNotFoundError(
-        "You don't have Discord.py installed, install it with 'pip3 install --user --upgrade discord.py[voice]'")
+        "You don't have Discord.py installed, install it with "
+        "'pip3 install --user --upgrade discord.py[voice]'")
 
 try:
     import requests
@@ -422,4 +418,5 @@ try:
     bot.run(loginID)
 except:
     raise ValueError(
-        "Couldn't log in with the given credentials, please check those in config.ini and your connection and try again!")
+        "Couldn't log in with the given credentials, please check those in config.ini"
+        " and your connection and try again!")
