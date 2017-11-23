@@ -20,6 +20,13 @@ try:
 except:
     print("You don't have requests installed. No URL shortening or Search commands will work")
 
+try:
+    import pydeepl
+    provideTranslation=True
+except:
+    print("You don't have pydeepl installed. Translation will not work!")
+    provideTranslation=False
+
 # Import the Config file
 config = checks.getconf()
 login = config['Login']
@@ -35,8 +42,7 @@ mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
-mainchannel = None
-bot_version = "2.0.3"
+bot_version = "2.1.0"
 
 # Check for optional features
 if userandomAPI:
@@ -194,7 +200,7 @@ async def on_ready():
     print(bot.user.id)
     print(f"Using Bot Version: {bot_version}")
     try:
-        mainchannel = bot.get_channel(mainChannelID)
+        bot.get_channel(mainChannelID)
     except:
         print("There was no Main Channel specified or I couldn't find it")
 
@@ -272,7 +278,7 @@ async def dice(amount: int=1, sides: int=6):
     """Uses a random number generator to roll dice for you
         Parameters amount: Amount of dice to roll
                    sides: how many sides the dice has."""
-    result = await getrandints(amount=amount, max=sides, force_builtin=False)
+    result = await getrandints(maximum=sides, amount=amount, force_builtin=False)
     await bot.say(str(result))
 
 
@@ -414,6 +420,21 @@ if provideYoutubedl:
         await bot.say(f"Okay i am downloading the video at {url} and uploading it to your drive!")
         await bot.loop.run_in_executor(None, _download, url)
         await bot.say('Done!')
+
+if provideTranslation:
+    @bot.command(aliases=['trans', 'tl'])
+    async def translate(*, translate: str):
+        """Translates the given Text into the given language.
+           Usage: EN Text
+           where EN is a Language shorthand like DE EN NL etc
+           Translation is provided by DeepL"""
+        try:
+            translated = pydeepl.translate(to_lang=translate[0].upper()+translate[1].upper(), text=translate[3:])
+        except:
+            translated = "The Text was not given in the proper format: EN Text"
+        await bot.say(translated)
+
+
 try:
     bot.run(loginID)
 except:
