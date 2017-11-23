@@ -21,7 +21,7 @@ except:
     print("You don't have requests installed. No URL shortening or Search commands will work")
 
 try:
-    import pydeepl
+    import deepl
     provideTranslation=True
 except:
     print("You don't have pydeepl installed. Translation will not work!")
@@ -42,7 +42,7 @@ mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
-bot_version = "2.1.0"
+bot_version = "2.1.1"
 
 # Check for optional features
 if userandomAPI:
@@ -429,7 +429,7 @@ if provideTranslation:
            where EN is a Language shorthand like DE EN NL etc
            Translation is provided by DeepL"""
         try:
-            translated = pydeepl.translate(to_lang=translate[0].upper()+translate[1].upper(), text=translate[3:].replace('/n', ''))
+            translated, extra_data = deepl.translate(target=translate[0].upper()+translate[1].upper(), text=translate[3:])
         except:
             translated = "The Text was not given in the proper format: EN Text"
         await bot.say(translated)
