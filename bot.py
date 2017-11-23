@@ -429,7 +429,7 @@ if provideTranslation:
            where EN is a Language shorthand like DE EN NL etc
            Translation is provided by DeepL"""
         try:
-            translated = pydeepl.translate(to_lang=translate[0].upper()+translate[1].upper(), text=translate[3:])
+            translated = pydeepl.translate(to_lang=translate[0].upper()+translate[1].upper(), text=translate[3:].replace('/n', ''))
         except:
             translated = "The Text was not given in the proper format: EN Text"
         await bot.say(translated)
