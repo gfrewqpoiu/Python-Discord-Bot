@@ -11,5 +11,7 @@ Requirements:
 Optional:
 * pyrandom (Adds support for random.org)
 * google-api-python-client (Adds Image Search commands)
+* deepl (Adds support for translation)
+* youtube-dl and rclone (Allows the bot owner to download and then upload files using the server where the bot is hosted
 
 License: [CC-BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
