@@ -42,7 +42,7 @@ mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
-bot_version = "2.1.1"
+bot_version = "2.1.2"
 
 # Check for optional features
 if userandomAPI:
@@ -76,17 +76,6 @@ try:
     provideYoutubedl = True
 except:
     pass
-
-class MyLogger(object):
-    def debug(self, msg):
-        pass
-
-    def warning(self, msg):
-        pass
-
-    def error(self, msg):
-        print(msg)
-
 
 # Utility functions
 async def getimage(query: str, start: int=1):
@@ -147,8 +136,8 @@ ydl_opts = {
                 'key': 'ExecAfterDownload',
                 'exec_cmd': 'rclone move {} Drive:Upload',
             }],
-            'logger': MyLogger(),
             'progress_hooks': [my_hook],
+            'outtmpl': '%(title)s.%(ext)s',
         }
 
 ydlv_opts = {
@@ -161,8 +150,8 @@ ydlv_opts = {
                 'exec_cmd': 'rclone move {} Drive:Upload',
             }
             ],
-            'logger': MyLogger(),
             'progress_hooks': [my_hook],
+            'outtmpl': '%(title)s.%(ext)s',
         }
 
 def _download(url, isVideo: bool=True):
