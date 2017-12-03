@@ -42,7 +42,7 @@ mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
-bot_version = "2.1.2"
+bot_version = "2.1.3"
 
 # Check for optional features
 if userandomAPI:
@@ -313,7 +313,10 @@ if provideSearch:
     async def img(ctx, *, query: str=""):
         """Searches for an Image on Google and returns the first result"""
         query.strip()
-        await bot.delete_message(ctx.message)
+        try:
+            await bot.delete_message(ctx.message)
+        except:
+            pass
         if not query:
             await bot.say("Please provide a search term")
             return
@@ -333,7 +336,10 @@ if provideSearch:
     async def rimg(ctx, *, query: str=""):
         """Searches for an Image on Google and returns a random result"""
         query.strip()
-        await bot.delete_message(ctx.message)
+        try:
+            await bot.delete_message(ctx.message)
+        except:
+            pass
         if not query:
             await bot.say("Please provide a search term")
             return
