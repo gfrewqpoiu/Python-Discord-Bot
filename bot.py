@@ -42,7 +42,8 @@ mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
-bot_version = "2.1.3"
+peewee_aviable = False
+bot_version = "2.1.4"
 
 # Check for optional features
 if userandomAPI:
@@ -75,6 +76,15 @@ try:
     import youtube_dl
     provideYoutubedl = True
 except:
+    pass
+
+try:
+    import peewee
+    import database
+    db = database.createdb()
+    peewee_available = True
+except:
+    db = None
     pass
 
 # Utility functions
@@ -181,6 +191,27 @@ async def _shorten(url, direct=False):
 
 bot = commands.Bot(command_prefix=settings.get('prefix', '$'),
                    description=settings.get('Bot Description', 'A WIP bot'), pm_help=True)
+
+async def _imagesearch(ctx, query, start=1):
+    """Searches for an image and returns a discord embed"""
+    query.strip()
+    try:
+        await bot.delete_message(ctx.message)
+    except:
+        pass
+    if not query:
+        await bot.say("Please provide a search term")
+        return
+
+    queryurl = parse.quote_plus(query)
+    result = await getimage(query, start)
+    link = result['items'][0]['link']
+
+    embed = discord.Embed()
+    embed.set_image(url=str(link))
+    embed.set_author(name=f"Image Search for {query} by {ctx.message.author.name}",
+                     url=f"https://www.google.com/search?q={queryurl}&source=lnms&tbm=isch")
+    return embed
 
 @bot.event
 async def on_ready():
@@ -297,7 +328,8 @@ async def shutdown(ctx):
 @bot.command(pass_context=True, hidden=True)
 async def update(ctx):
     """Updates the bot with the newest Version from GitHub
-        Only works for the bot owner account"""
+        Only works for the bot owner account
+        This doesn't work when git isn't installed"""
     await bot.say("Ok, I am updating from GitHub")
     try:
         output = subprocess.run(["git", "pull"], stdout=subprocess.PIPE)
@@ -312,48 +344,14 @@ if provideSearch:
     @bot.command(pass_context=True, aliases=['image'])
     async def img(ctx, *, query: str=""):
         """Searches for an Image on Google and returns the first result"""
-        query.strip()
-        try:
-            await bot.delete_message(ctx.message)
-        except:
-            pass
-        if not query:
-            await bot.say("Please provide a search term")
-            return
-
-        queryurl = parse.quote_plus(query)
-        res = await getimage(query)
-        link = res['items'][0]['link']
-
-        embed = discord.Embed()
-        embed.set_image(url=str(link))
-        embed.set_author(name=f"Image Search for {query} by {ctx.message.author.name}",
-                         url=f"https://www.google.com/search?q={queryurl}&source=lnms&tbm=isch")
-
+        embed = await _imagesearch(ctx, query)
         await bot.send_message(ctx.message.channel, embed=embed)
 
     @bot.command(pass_context=True, aliases=['randomimage'])
     async def rimg(ctx, *, query: str=""):
         """Searches for an Image on Google and returns a random result"""
-        query.strip()
-        try:
-            await bot.delete_message(ctx.message)
-        except:
-            pass
-        if not query:
-            await bot.say("Please provide a search term")
-            return
-
-        queryurl = parse.quote_plus(query)
         start = await getrandints(maximum=50)
-        res = await getimage(query, start=int(start))
-        link = res['items'][0]['link']
-
-        embed = discord.Embed()
-        embed.set_image(url=str(link))
-        embed.set_author(name=f"Image Search for {query} by {ctx.message.author.name}",
-                         url=f"https://www.google.com/search?q={queryurl}&source=lnms&tbm=isch")
-
+        embed = await _imagesearch(ctx, query, start)
         await bot.send_message(ctx.message.channel, embed=embed)
 
 
