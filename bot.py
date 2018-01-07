@@ -10,20 +10,20 @@ try:  # These are mandatory.
     from discord.ext import commands
     from discord import utils
     import asyncio
-except:
+except ImportError:
     raise ModuleNotFoundError(
         "You don't have Discord.py installed, install it with "
         "'pip3 install --user --upgrade discord.py[voice]'")
 
 try:
     import requests
-except:
+except ImportError:
     print("You don't have requests installed. No URL shortening or Search commands will work")
 
 try:
     import deepl
     provideTranslation=True
-except:
+except ImportError:
     print("You don't have pydeepl installed. Translation will not work!")
     provideTranslation=False
 
@@ -38,12 +38,13 @@ searchcfg = config['Search']
 userandomAPI = rngcfg.getboolean('Use Random.org', False)
 usegoogleAPI = searchcfg.getboolean('Use Google Image Search', False)
 loginID = login.get('Login Token')
+selfbot = login.getboolean('Self Bot', False)
 mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
 peewee_aviable = False
-bot_version = "2.1.4"
+bot_version = "3.0.0-selfbot"
 
 # Check for optional features
 if userandomAPI:
@@ -189,8 +190,6 @@ async def _shorten(url, direct=False):
             f"https://v.gd/create.php?format=simple&url={url}")
         return result.text
 
-bot = commands.Bot(command_prefix=settings.get('prefix', '$'),
-                   description=settings.get('Bot Description', 'A WIP bot'), pm_help=True)
 
 async def _imagesearch(ctx, query, start=1):
     """Searches for an image and returns a discord embed"""
@@ -212,6 +211,10 @@ async def _imagesearch(ctx, query, start=1):
     embed.set_author(name=f"Image Search for {query} by {ctx.message.author.name}",
                      url=f"https://www.google.com/search?q={queryurl}&source=lnms&tbm=isch")
     return embed
+
+
+bot = commands.Bot(command_prefix=settings.get('prefix', '$'),
+                   description=settings.get('Bot Description', 'A WIP bot'), pm_help=not selfbot, self_bot=selfbot)
 
 @bot.event
 async def on_ready():
@@ -429,7 +432,7 @@ if provideTranslation:
 
 
 try:
-    bot.run(loginID)
+    bot.run(loginID, bot=not selfbot)
 except:
     raise ValueError(
         "Couldn't log in with the given credentials, please check those in config.ini"
