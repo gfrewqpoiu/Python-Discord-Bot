@@ -44,7 +44,7 @@ provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
 peewee_aviable = False
-bot_version = "3.0.0-selfbot"
+bot_version = "3.0.0"
 
 # Check for optional features
 if userandomAPI:
