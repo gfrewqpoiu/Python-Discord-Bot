@@ -470,6 +470,11 @@ async def quote(name: str):
         await bot.say("📢 " + quote.link)
         quote.times_used += 1
 
+@bot.command(pass_context=True)
+async def ping(ctx):
+    """Checks the ping of the bot"""
+    m = await bot.say("Ping?")
+    await bot.edit_message(m, f"Pong, Latency is {m.timestamp - ctx.message.timestamp}.")
 
 try:
     bot.run(loginID, bot=not selfbot)
