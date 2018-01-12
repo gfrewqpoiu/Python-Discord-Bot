@@ -45,7 +45,7 @@ provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
 peewee_aviable = False
-bot_version = "3.0.0"
+bot_version = "3.1.0"
 
 # Check for optional features
 if userandomAPI:
@@ -475,6 +475,13 @@ async def ping(ctx):
     """Checks the ping of the bot"""
     m = await bot.say("Ping?")
     await bot.edit_message(m, f"Pong, Latency is {m.timestamp - ctx.message.timestamp}.")
+
+@checks.is_admin()
+@bot.command(pass_context=True, hidden=True, aliases=['setgame', 'setplaying'])
+async def gametitle(ctx, *, message: str):
+    """Sets the currently playing status of the bot"""
+    await bot.change_presence(game=discord.Game(name=message))
+
 
 try:
     bot.run(loginID, bot=not selfbot)
