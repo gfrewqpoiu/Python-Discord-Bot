@@ -37,3 +37,19 @@ def check_permissions(ctx, perms):
     author = msg.author
     resolved = ch.permissions_for(author)
     return all(getattr(resolved, name, None) == value for name, value in perms.items())
+
+def is_admin_check(message):
+    if is_owner():
+        return True
+    return message.author.permissions_in(message.channel).administrator
+
+def is_admin():
+    return commands.check(lambda ctx: is_admin_check(ctx.message))
+
+def is_mod_check(message):
+    if is_admin():
+        return True
+    return message.author.permissions_in(message.channel).ban_members
+
+def is_mod():
+    return commands.check(lambda ctx: is_mod_check(ctx.message))

@@ -10,6 +10,7 @@ try:  # These are mandatory.
     from discord.ext import commands
     from discord import utils
     import asyncio
+    import aiohttp
 except ImportError:
     raise ModuleNotFoundError(
         "You don't have Discord.py installed, install it with "
@@ -100,6 +101,10 @@ async def getimage(query: str, start: int=1):
         start=start
     ).execute()
 
+async def downloadfile(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url=url) as resp:
+            return await resp.read()
 
 async def getrandints(minimum: int=1, maximum: int=6, amount: int=1, force_builtin: bool=True):
     if minimum < maximum and 50 >= amount > 0:
@@ -347,6 +352,7 @@ if provideSearch:
     @bot.command(pass_context=True, aliases=['image'])
     async def img(ctx, *, query: str=""):
         """Searches for an Image on Google and returns the first result"""
+        message = ctx.message
         embed = await _imagesearch(ctx, query)
         await bot.send_message(ctx.message.channel, embed=embed)
 
@@ -406,6 +412,7 @@ if provideYoutubedl:
     @checks.is_owner()
     @bot.command(pass_context=True, hidden=True, aliases=['dlaul'])
     async def downloadaudioandupload(ctx, url: str):
+        msg = ctx.message
         await bot.say(f"Okay i am downloading the audio at {url} and uploading it to your drive!")
         await bot.loop.run_in_executor(None, _downloada, url)
         await bot.say('Done!')
@@ -429,6 +436,39 @@ if provideTranslation:
         except:
             translated = "The Text was not given in the proper format: EN Text"
         await bot.say(translated)
+
+@checks.is_owner()
+@bot.command(pass_context=True, aliases=['qaddf'])
+async def quoteaddfile(ctx, name: str):
+    attachment = ctx.message.attachments[0]
+    url = attachment['url']
+    database.createLinkQuote(ctx.message.author, name=name, link=url)
+    await bot.say("Done")
+
+@checks.is_owner()
+@bot.command(pass_context=True, aliases=['qadd'])
+async def quoteadd(ctx, name: str, text: str):
+    """Adds a text quote into the bot database."""
+    try:
+        database.createTextQuote(ctx.message.author, name=name, text=text)
+    except peewee.IntegrityError:
+        return await bot.say("This quote couldn't be added. Most likely the keyword is taken.")
+    await bot.say("Done")
+
+@bot.command(aliases=['q'])
+async def quote(name: str):
+    """Posts the Quote with the given name in the chat."""
+    try:
+        quote = database.Quote.get(name=name)
+    except peewee.DoesNotExist:
+        return await bot.say("This doesn't exist")
+
+    if quote.text:
+        await bot.say("📢 " + quote.text)
+        quote.times_used += 1
+    else:
+        await bot.say("📢 " + quote.link)
+        quote.times_used += 1
 
 
 try:
