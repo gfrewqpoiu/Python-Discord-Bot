@@ -5,6 +5,7 @@ import sys
 import os
 import subprocess
 import checks
+import logging
 try:  # These are mandatory.
     import discord
     from discord.ext import commands
@@ -28,6 +29,8 @@ except ImportError:
     print("You don't have pydeepl installed. Translation will not work!")
     provideTranslation=False
 
+logging.basicConfig(level=logging.ERROR)
+
 # Import the Config file
 config = checks.getconf()
 login = config['Login']
@@ -45,7 +48,7 @@ provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
 peewee_aviable = False
-bot_version = "3.1.0"
+bot_version = "3.2.0"
 
 # Check for optional features
 if userandomAPI:
@@ -147,7 +150,7 @@ def my_hook(d):
     if d['status'] == 'finished':
         print('Done downloading, now uploading...')
 
-ydl_opts = {
+ydlU_opts = {
             'postprocessors': [{
                 'key': 'ExecAfterDownload',
                 'exec_cmd': 'rclone move {} Drive:Upload',
@@ -156,7 +159,7 @@ ydl_opts = {
             'outtmpl': '%(title)s.%(ext)s',
         }
 
-ydlv_opts = {
+ydlvU_opts = {
             'postprocessors': [{
                 'key': 'FFmpegVideoConvertor',
                 'preferedformat': 'mp4',
@@ -169,6 +172,31 @@ ydlv_opts = {
             'progress_hooks': [my_hook],
             'outtmpl': '%(title)s.%(ext)s',
         }
+
+
+ydl_opts = {
+            'progress_hooks': [my_hook],
+            'outtmpl': '%(title)s.%(ext)s',
+        }
+
+ydlv_opts = {
+            'postprocessors': [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }],
+            'progress_hooks': [my_hook],
+            'outtmpl': '%(title)s.%(ext)s',
+        }
+
+def _downloadU(url, isVideo: bool=True):
+    with youtube_dl.YoutubeDL(ydlvU_opts) as ydl:
+        ydl.download([url])
+        return url
+
+def _downloadaU(url):
+    with youtube_dl.YoutubeDL(ydlU_opts) as ydl:
+        ydl.download([url])
+        return url
 
 def _download(url, isVideo: bool=True):
     with youtube_dl.YoutubeDL(ydlv_opts) as ydl:
@@ -412,15 +440,42 @@ if provideYoutubedl:
     @checks.is_owner()
     @bot.command(pass_context=True, hidden=True, aliases=['dlaul'])
     async def downloadaudioandupload(ctx, url: str):
-        msg = ctx.message
+        """This downloads the audio (or video) from the given link and uploads it to rclones Drive:Upload folder.
+        This should work for most sites. Read the youtube-dl docs for the full list."""
         await bot.say(f"Okay i am downloading the audio at {url} and uploading it to your drive!")
-        await bot.loop.run_in_executor(None, _downloada, url)
+        await bot.loop.run_in_executor(None, _downloadaU, url)
         await bot.say('Done!')
 
     @checks.is_owner()
     @bot.command(pass_context=True, hidden=True, aliases=['dlvul', 'dlul'])
     async def downloadvideoandupload(ctx, url: str):
+        """This downloads a video from the given link and uploads it to rclones Drive:Upload folder.
+        This command also converts the video to MP4 if it isn't in that format already.
+        So it is not advisable to use this for audio files. use dla instead.
+        This shoud work for most sites. Read the youtube-dl docs for the full list.
+        I recommend having ffmpeg installed and in your path."""
         await bot.say(f"Okay i am downloading the video at {url} and uploading it to your drive!")
+        await bot.loop.run_in_executor(None, _downloadU, url)
+        await bot.say('Done!')
+
+    @checks.is_owner()
+    @bot.command(pass_context=True, hidden=not selfbot, aliases=['dla'])
+    async def downloadaudio(ctx, url: str):
+        """This downloads the audio (or video) from the given link and saves it in the bot folder.
+        This should work for most sites. Read the youtube-dl docs for the full list."""
+        await bot.say(f"Okay i am downloading the audio at {url}")
+        await bot.loop.run_in_executor(None, _downloada, url)
+        await bot.say('Done!')
+
+    @checks.is_owner()
+    @bot.command(pass_context=True, hidden=not selfbot, aliases=['dlv', 'dl'])
+    async def downloadvideo(ctx, url: str):
+        """This downloads a video from the given link and saves it in the folder where the bot is located.
+        This command also converts the video to MP4 if it isn't in that format already.
+        So it is not advisable to use this for audio files. use dla instead.
+        This shoud work for most sites. Read the youtube-dl docs for the full list.
+        I recommend having ffmpeg installed and in your path."""
+        await bot.say(f"Okay i am downloading the video at {url}")
         await bot.loop.run_in_executor(None, _download, url)
         await bot.say('Done!')
 
@@ -481,6 +536,21 @@ async def ping(ctx):
 async def gametitle(ctx, *, message: str):
     """Sets the currently playing status of the bot"""
     await bot.change_presence(game=discord.Game(name=message))
+
+@checks.is_mod()
+@bot.command(pass_context=True, aliases=['prune', 'delmsgs'])
+async def purge(ctx, amount: int):
+    """Removes the given amount of messages from the given channel."""
+    try:
+        await bot.purge_from(ctx.message.channel, limit=amount+1)
+    except discord.Forbidden:
+        await bot.say("I couldn't do that because of missing permissions")
+
+@checks.is_mod()
+@bot.command()
+async def changelog():
+    """Gives back the changelog for the most recent non bugfix build. Full changelog is in Changelog.md"""
+    await bot.say("""3.2.0 Added some commands to just download files with youtube.dl (dla and dlv)""")
 
 
 try:
