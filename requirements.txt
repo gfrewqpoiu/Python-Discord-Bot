@@ -3,3 +3,4 @@ requests
 pyrandom
 google-api-python-client
 peewee
+deepl
