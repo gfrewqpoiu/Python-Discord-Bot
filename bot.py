@@ -47,8 +47,8 @@ mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
-peewee_aviable = False
-bot_version = "3.2.0"
+peewee_available = False
+bot_version = "3.2.1"
 
 # Check for optional features
 if userandomAPI:
@@ -294,6 +294,7 @@ async def msgs(ctx):
             counter += 1
 
     await bot.delete_message(ctx.message)
+    await bot.delete_message(tmp)
     await bot.reply(f'You have {counter} messages.', delete_after=10)
 
 
@@ -318,7 +319,7 @@ async def rng(min: int=1, max: int=6, amount: int=3):
     await bot.say(str(result))
 
 if provideRandomOrg:
-    @bot.command(aliases=['randomlocal', 'rngl', 'randlocal'])
+    @bot.command(hidden=True, aliases=['randomlocal', 'rngl', 'randlocal'])
     async def rnglocal(min: int=1, max: int=100, amount: int=3):
         """Uses the local random number generator to generate numbers for you
             Unlike the rng command this will never use random.org.
@@ -366,7 +367,7 @@ async def update(ctx):
     """Updates the bot with the newest Version from GitHub
         Only works for the bot owner account
         This doesn't work when git isn't installed"""
-    await bot.say("Ok, I am updating from GitHub")
+    await bot.say("Ok, I am updating from GitHub", delete_after=5)
     try:
         output = subprocess.run(["git", "pull"], stdout=subprocess.PIPE)
         embed = discord.Embed()
@@ -374,7 +375,7 @@ async def update(ctx):
         embed.set_footer(text=output.stdout.decode('utf-8'))
         await bot.send_message(ctx.message.channel, embed=embed)
     except:
-        await bot.say("That didn't work for some reason")
+        await bot.say("That didn't work for some reason", delete_after=10)
 
 if provideSearch:
     @bot.command(pass_context=True, aliases=['image'])
@@ -492,38 +493,46 @@ if provideTranslation:
             translated = "The Text was not given in the proper format: EN Text"
         await bot.say(translated)
 
-@checks.is_owner()
-@bot.command(pass_context=True, aliases=['qaddf'])
-async def quoteaddfile(ctx, name: str):
-    attachment = ctx.message.attachments[0]
-    url = attachment['url']
-    database.createLinkQuote(ctx.message.author, name=name, link=url)
-    await bot.say("Done")
+if peewee_available:
+    @checks.is_owner()
+    @bot.command(pass_context=True, aliases=['qaddf'])
+    async def quoteaddfile(ctx, name: str):
+        """Creates a new Quote with the given attachment.
+        Attach a file to the command that you run."""
+        attachment = ctx.message.attachments[0]
+        url = attachment['url']
+        database.createLinkQuote(ctx.message.author, name=name, link=url)
+        await bot.say("Done")
 
-@checks.is_owner()
-@bot.command(pass_context=True, aliases=['qadd'])
-async def quoteadd(ctx, name: str, text: str):
-    """Adds a text quote into the bot database."""
-    try:
-        database.createTextQuote(ctx.message.author, name=name, text=text)
-    except peewee.IntegrityError:
-        return await bot.say("This quote couldn't be added. Most likely the keyword is taken.")
-    await bot.say("Done")
+    @checks.is_owner()
+    @bot.command(pass_context=True, aliases=['qadd'])
+    async def quoteadd(ctx, name: str, text: str):
+        """Adds a text quote into the bot database."""
+        try:
+            database.createTextQuote(ctx.message.author, name=name, text=text)
+        except peewee.IntegrityError:
+            return await bot.say("This quote couldn't be added. Most likely the keyword is taken.")
+        except Exception as e:
+            logging.log(level=logging.ERROR, msg=e)
+            return await bot.say("There was a weird error. Inform the bot Owner.")
+        await bot.say("Done")
 
-@bot.command(aliases=['q'])
-async def quote(name: str):
-    """Posts the Quote with the given name in the chat."""
-    try:
-        quote = database.Quote.get(name=name)
-    except peewee.DoesNotExist:
-        return await bot.say("This doesn't exist")
+    @bot.command(pass_context=True, aliases=['q'])
+    async def quote(ctx, name: str):
+        """Posts the Quote with the given name in the chat."""
+        await bot.delete_message(ctx.message)
+        try:
+            quote = database.Quote.get(name=name)
+        except peewee.DoesNotExist:
+            return await bot.reply("This doesn't exist")
 
-    if quote.text:
-        await bot.say("📢 " + quote.text)
+        if quote.text:
+            await bot.say("📢 " + quote.text)
+            quote.times_used += 1
+        else:
+            await bot.say("📢 " + quote.link)
         quote.times_used += 1
-    else:
-        await bot.say("📢 " + quote.link)
-        quote.times_used += 1
+
 
 @bot.command(pass_context=True)
 async def ping(ctx):
@@ -532,10 +541,11 @@ async def ping(ctx):
     await bot.edit_message(m, f"Pong, Latency is {m.timestamp - ctx.message.timestamp}.")
 
 @checks.is_admin()
-@bot.command(pass_context=True, hidden=True, aliases=['setgame', 'setplaying'])
-async def gametitle(ctx, *, message: str):
+@bot.command(hidden=True, aliases=['setgame', 'setplaying'])
+async def gametitle(*, message: str):
     """Sets the currently playing status of the bot"""
     await bot.change_presence(game=discord.Game(name=message))
+    await bot.reply(f"Changed the playing status to {message}")
 
 @checks.is_mod()
 @bot.command(pass_context=True, aliases=['prune', 'delmsgs'])
@@ -544,13 +554,13 @@ async def purge(ctx, amount: int):
     try:
         await bot.purge_from(ctx.message.channel, limit=amount+1)
     except discord.Forbidden:
-        await bot.say("I couldn't do that because of missing permissions")
+        await bot.reply("I couldn't do that because of missing permissions")
 
 @checks.is_mod()
 @bot.command()
 async def changelog():
     """Gives back the changelog for the most recent non bugfix build. Full changelog is in Changelog.md"""
-    await bot.say("""3.2.0 Added some commands to just download files with youtube.dl (dla and dlv)""")
+    await bot.say("""3.2.1 Added some commands to just download files with youtube.dl (dla and dlv)""")
 
 
 try:
