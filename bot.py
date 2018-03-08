@@ -540,24 +540,25 @@ async def ping(ctx):
     m = await bot.say("Ping?")
     await bot.edit_message(m, f"Pong, Latency is {m.timestamp - ctx.message.timestamp}.")
 
-@checks.is_admin()
 @bot.command(hidden=True, aliases=['setgame', 'setplaying'])
+@commands.has_permissions(administrator=True)
 async def gametitle(*, message: str):
     """Sets the currently playing status of the bot"""
     await bot.change_presence(game=discord.Game(name=message))
     await bot.reply(f"Changed the playing status to {message}")
 
-@checks.is_mod()
-@bot.command(pass_context=True, aliases=['prune', 'delmsgs'])
-async def purge(ctx, amount: int):
-    """Removes the given amount of messages from the given channel."""
-    try:
-        await bot.purge_from(ctx.message.channel, limit=amount+1)
-    except discord.Forbidden:
-        await bot.reply("I couldn't do that because of missing permissions")
+if not selfbot:
+    @bot.command(pass_context=True, aliases=['prune', 'delmsgs'])
+    @commands.has_permissions(manage_messages=True)
+    async def purge(ctx, amount: int):
+        """Removes the given amount of messages from the given channel."""
+        try:
+            await bot.purge_from(ctx.message.channel, limit=amount+1)
+        except discord.Forbidden:
+            await bot.reply("I couldn't do that because of missing permissions")
 
-@checks.is_mod()
 @bot.command()
+@commands.has_permissions(manage_messages=True)
 async def changelog():
     """Gives back the changelog for the most recent non bugfix build. Full changelog is in Changelog.md"""
     await bot.say("""3.2.1 Added some commands to just download files with youtube.dl (dla and dlv)""")
