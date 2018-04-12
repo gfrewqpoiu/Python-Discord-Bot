@@ -1,7 +1,8 @@
 from peewee import *
+from playhouse.pool import *
 import datetime
 
-db = SqliteDatabase('Quotes.db')
+db = PooledSqliteDatabase('Quotes.db')
 
 class Quote(Model):
     name = CharField(null = False, unique = True)
