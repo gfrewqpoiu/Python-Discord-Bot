@@ -48,7 +48,7 @@ provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
 peewee_available = False
-bot_version = "3.2.1"
+bot_version = "3.3.0"
 
 # Check for optional features
 if userandomAPI:
@@ -563,6 +563,21 @@ async def changelog():
     """Gives back the changelog for the most recent non bugfix build. Full changelog is in Changelog.md"""
     await bot.say("""3.2.1 Added some commands to just download files with youtube.dl (dla and dlv)""")
 
+if selfbot:
+    @bot.command(pass_context=True)
+    async def autotrain(ctx, times: int=10):
+        await bot.delete_message(ctx.message)
+        i = 0
+        while i < times:
+            await asyncio.sleep(random.randint(15, 30))
+            await bot.say("t!pet train")
+            i += 1
+if selfbot:
+    @bot.command(pass_context=True)
+    async def getdaily(ctx):
+        await bot.delete_message(ctx.message)
+        await bot.say(";timely")
+        await bot.say("pls daily")
 
 try:
     bot.run(loginID, bot=not selfbot)
