@@ -279,7 +279,7 @@ async def on_ready():
 
     print("I am part of the following servers:")
     for server in bot.servers:
-        print(f"{server.name}")
+        print(f"{server.name} with {server.member_count} members")
 
     print('------')
 
