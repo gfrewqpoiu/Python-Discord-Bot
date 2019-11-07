@@ -6,3 +6,4 @@ __pycache__/
 /Quotes.db
 
 venv/
+/.venv/
