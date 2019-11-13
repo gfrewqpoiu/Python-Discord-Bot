@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
 import random
 import sys
 import os
 import subprocess
 import checks
 import logging
+from loguru import logger
 try:  # These are mandatory.
     import discord
     from discord.ext import commands
@@ -18,18 +18,26 @@ except ImportError:
         "'pip3 install --user --upgrade discord.py[voice]'")
 
 try:
-    import requests
+    import httpx
 except ImportError:
-    print("You don't have requests installed. No URL shortening or Search commands will work")
+    logger.warning("You don't have httpx installed. No URL shortening or Search commands will work")
 
 try:
     import deepl
-    provideTranslation=True
+    provideTranslation = True
 except ImportError:
-    print("You don't have pydeepl installed. Translation will not work!")
-    provideTranslation=False
+    logger.warning("You don't have pydeepl installed. Translation will not work!")
+    provideTranslation = False
 
-logging.basicConfig(level=logging.ERROR)
+
+class InterceptHandler(logging.Handler):
+    def emit(self, record):
+        # Retrieve context where the logging call occurred, this happens to be in the 6th frame upward
+        logger_opt = logger.opt(depth=6, exception=record.exc_info)
+        logger_opt.log(record.levelno, record.getMessage())
+
+
+logging.basicConfig(handlers=[InterceptHandler()], level=logging.WARNING)
 
 # Import the Config file
 config = checks.getconf()
@@ -42,25 +50,22 @@ searchcfg = config['Search']
 userandomAPI = rngcfg.getboolean('Use Random.org', False)
 usegoogleAPI = searchcfg.getboolean('Use Google Image Search', False)
 loginID = login.get('Login Token')
-selfbot = login.getboolean('Self Bot', False)
 mainChannelID = settings.get('Main Channel', '')
 provideSearch = False
 provideRandomOrg = False
 provideYoutubedl = False
 peewee_available = False
-bot_version = "3.3.0"
+bot_version = "4.0.0a"
 
 # Check for optional features
 if userandomAPI:
     randomAPIKey = rngcfg.get('Random.org Key', '')
     randomAPIKey.strip()
     if randomAPIKey:
-        try:
-            import pyrandom as trandom
-            trandom.set_api_key(randomAPIKey)
-            provideRandomOrg = True
-        except:
-            pass
+        from rdoclient import RandomOrgClient
+        trandom = RandomOrgClient(randomAPIKey)
+        provideRandomOrg = True
+        pass
 
 if usegoogleAPI:
     googlekey = searchcfg.get('Google API Key', '')
@@ -214,12 +219,12 @@ async def _shorten(url, direct=False):
 
     if direct:
         url = parse.quote(string=url)
-        result = requests.get(
+        result = httpx.get(
             f"https://is.gd/create.php?format=simple&url={url}")
         return result.text
     else:
         url = parse.quote(string=url)
-        result = requests.get(
+        result = httpx.get(
             f"https://v.gd/create.php?format=simple&url={url}")
         return result.text
 
@@ -228,11 +233,11 @@ async def _imagesearch(ctx, query, start=1):
     """Searches for an image and returns a discord embed"""
     query.strip()
     try:
-        await bot.delete_message(ctx.message)
+        await ctx.message.delete()
     except:
         pass
     if not query:
-        await bot.say("Please provide a search term")
+        await ctx.send("Please provide a search term")
         return
 
     queryurl = parse.quote_plus(query)
@@ -247,7 +252,8 @@ async def _imagesearch(ctx, query, start=1):
 
 
 bot = commands.Bot(command_prefix=settings.get('prefix', '$'),
-                   description=settings.get('Bot Description', 'A WIP bot'), pm_help=not selfbot, self_bot=selfbot)
+                   description=settings.get('Bot Description', 'A WIP bot'), pm_help=True)
+
 
 @bot.event
 async def on_ready():
@@ -278,80 +284,81 @@ async def on_ready():
     print('------')
 
     print("I am part of the following servers:")
-    for server in bot.servers:
-        print(f"{server.name} with {server.member_count} members")
+    for guild in bot.guilds:
+        print(f"{guild.name} with {guild.member_count} members")
 
     print('------')
 
-@bot.command(pass_context=True)
+
+@bot.command()
 async def msgs(ctx):
     """Calculates messages from you in this chat"""
     counter = 0
-    tmp = await bot.say('Calculating messages...')
-    await bot.type()
-    async for log in bot.logs_from(ctx.message.channel, limit=100):
-        if log.author == ctx.message.author:
+    tmp = await ctx.send('Calculating messages...')
+    await ctx.trigger_typing()
+    async for message in ctx.history(limit=200):
+        if message.author == ctx.author:
             counter += 1
 
-    await bot.delete_message(ctx.message)
-    await bot.delete_message(tmp)
-    await bot.reply(f'You have {counter} messages.', delete_after=10)
+    await ctx.message.delete()
+    await tmp.delete()
+    await ctx.send(f'You have {counter} messages.', delete_after=10)
 
 
-@bot.command(pass_context=True, aliases=['remind'])
-async def timer(ctx, seconds: int=5):
+@bot.command(aliases=['remind'])
+async def timer(ctx, seconds: int = 5):
     """Pings you when the given amount of seconds is over
-        This doesn't work over restarts"""
-    await bot.say("Okay, I will remind you!", delete_after=seconds)
+        This doesn't work over restarts."""
+    await ctx.send("Okay, I will remind you!", delete_after=seconds)
     await asyncio.sleep(seconds)
-    await bot.say(f'{ctx.message.author.mention}, your {seconds} seconds timer is up', delete_after=10)
-    await bot.delete_message(ctx.message)
+    await ctx.send(f'{ctx.message.author.mention}, your {seconds} seconds timer is up', delete_after=10)
+    await ctx.message.delete()
 
 
 @bot.command(aliases=['random', 'randint'])
-async def rng(min: int=1, max: int=6, amount: int=3):
+async def rng(ctx, min: int = 1, max: int = 6, amount: int = 3):
     """Uses a random number generator to generate numbers for you
         If the bot owner has specified a random.org API key the numbers will come from there.
         Params: min: Minimum value (inclusive)
                 max: Maximum value (inclusive)
                 amount: amount of Numbers to generate"""
     result = await getrandints(minimum=min, maximum=max, amount=amount, force_builtin=False)
-    await bot.say(str(result))
+    await ctx.send(str(result))
 
 if provideRandomOrg:
     @bot.command(hidden=True, aliases=['randomlocal', 'rngl', 'randlocal'])
-    async def rnglocal(min: int=1, max: int=100, amount: int=3):
+    async def rnglocal(ctx, min: int=1, max: int=100, amount: int=3):
         """Uses the local random number generator to generate numbers for you
             Unlike the rng command this will never use random.org.
             Params: min: Minimum value (inclusive)
                     max: Maximum value (inclusive)
                     amount: amount of Numbers to generate"""
         result = await getrandints(minimum=min, maximum=max, amount=amount, force_builtin=True)
-        await bot.say(str(result))
+        await ctx.send(str(result))
 
 
 @bot.command()
-async def dice(amount: int=1, sides: int=6):
+async def dice(ctx, amount: int=1, sides: int=6):
     """Uses a random number generator to roll dice for you
         Parameters amount: Amount of dice to roll
                    sides: how many sides the dice has."""
     result = await getrandints(maximum=sides, amount=amount, force_builtin=False)
-    await bot.say(str(result))
+    await ctx.send(str(result))
 
 
-@bot.command(pass_context=True, aliases=['hi'])
+@bot.command(aliases=['hi'])
 async def hello(ctx):
     """Says Hello"""
-    await bot.say(f"Hello {ctx.message.author.mention}!", delete_after=10)
+    await ctx.send(f"Hello {ctx.message.author.mention}!", delete_after=10)
     await asyncio.sleep(10)
-    await bot.delete_message(ctx.message)
+    await ctx.message.delete()
 
 
 @checks.is_owner()
-@bot.command(pass_context=True, hidden=True)
+@bot.command(hidden=True)
 async def shutdown(ctx):
     """Shuts the bot down"""
-    await bot.say("Shutting down!", delete_after=3)
+    await ctx.send("Shutting down!", delete_after=3)
     await asyncio.sleep(5)
     print(f"Shutting down on request of {ctx.message.author.name}!")
     await bot.close()
@@ -362,42 +369,42 @@ async def shutdown(ctx):
 
 
 @checks.is_owner()
-@bot.command(pass_context=True, hidden=True)
+@bot.command(hidden=True)
 async def update(ctx):
     """Updates the bot with the newest Version from GitHub
         Only works for the bot owner account
         This doesn't work when git isn't installed"""
-    await bot.say("Ok, I am updating from GitHub", delete_after=5)
+    await ctx.send("Ok, I am updating from GitHub", delete_after=5)
     try:
         output = subprocess.run(["git", "pull"], stdout=subprocess.PIPE)
         embed = discord.Embed()
         embed.set_author(name="Output:")
         embed.set_footer(text=output.stdout.decode('utf-8'))
-        await bot.send_message(ctx.message.channel, embed=embed)
+        await ctx.send(embed=embed)
     except:
-        await bot.say("That didn't work for some reason", delete_after=10)
+        await ctx.send("That didn't work for some reason", delete_after=10)
 
 if provideSearch:
-    @bot.command(pass_context=True, aliases=['image'])
+    @bot.command(aliases=['image'])
     async def img(ctx, *, query: str=""):
         """Searches for an Image on Google and returns the first result"""
         message = ctx.message
         embed = await _imagesearch(ctx, query)
-        await bot.send_message(ctx.message.channel, embed=embed)
+        await ctx.send(embed=embed)
 
-    @bot.command(pass_context=True, aliases=['randomimage'])
+    @bot.command(aliases=['randomimage'])
     async def rimg(ctx, *, query: str=""):
         """Searches for an Image on Google and returns a random result"""
         start = await getrandints(maximum=50)
         embed = await _imagesearch(ctx, query, start)
-        await bot.send_message(ctx.message.channel, embed=embed)
+        await ctx.send(embed=embed)
 
 
 @checks.is_owner()
-@bot.command(pass_context=True, hidden=True, aliases=['reboot'])
+@bot.command(hidden=True, aliases=['reboot'])
 async def restart(ctx):
     """Restart the bot"""
-    await bot.say("Restarting", delete_after=3)
+    await ctx.send("Restarting", delete_after=3)
     await asyncio.sleep(5)
     print(f"Restarting on request of {ctx.message.author.name}!")
     await bot.close()
@@ -408,81 +415,81 @@ async def restart(ctx):
 
 
 @bot.command(aliases=['vgd'])
-async def shorten(url: str):
+async def shorten(ctx, url: str):
     """Shortens the given URL with v.gd
     Requires the URL to begin with e.g https://
     data:// is unsupported"""
     if not is_valid_url(url=url):
-        await bot.say("No valid URL specified!")
+        await ctx.send("No valid URL specified!")
         return
     result = await _shorten(url)
-    await bot.say(f"{result}")
+    await ctx.send(f"{result}")
 
 
 @bot.command(aliases=['isgd', 'shortendl'], hidden=True)
-async def shortendirect(url: str):
+async def shortendirect(ctx, url: str):
     """Shortens the given URL with is.gd for a direct link.
     Requires the URL to begin with e.g https://
     data:// is unsupported.
     Shorten Command should be preferred."""
     if not is_valid_url(url=url):
-        await bot.say("No valid URL specified!")
+        await ctx.send("No valid URL specified!")
         return
     result = await _shorten(url)  # ,direct=True)
-    await bot.say(f"{result}")
+    await ctx.send(f"{result}")
 
 
 @bot.command(hidden=True)
-async def version():
+async def version(ctx):
     """Gives back the bot version"""
-    await bot.say(bot_version)
+    await ctx.send(bot_version)
 
 if provideYoutubedl:
     @checks.is_owner()
-    @bot.command(pass_context=True, hidden=True, aliases=['dlaul'])
+    @bot.command(hidden=True, aliases=['dlaul'])
     async def downloadaudioandupload(ctx, url: str):
         """This downloads the audio (or video) from the given link and uploads it to rclones Drive:Upload folder.
         This should work for most sites. Read the youtube-dl docs for the full list."""
-        await bot.say(f"Okay i am downloading the audio at {url} and uploading it to your drive!")
+        await ctx.send(f"Okay i am downloading the audio at {url} and uploading it to your drive!")
         await bot.loop.run_in_executor(None, _downloadaU, url)
-        await bot.say('Done!')
+        await ctx.send('Done!')
 
     @checks.is_owner()
-    @bot.command(pass_context=True, hidden=True, aliases=['dlvul', 'dlul'])
+    @bot.command(hidden=True, aliases=['dlvul', 'dlul'])
     async def downloadvideoandupload(ctx, url: str):
         """This downloads a video from the given link and uploads it to rclones Drive:Upload folder.
         This command also converts the video to MP4 if it isn't in that format already.
         So it is not advisable to use this for audio files. use dla instead.
         This shoud work for most sites. Read the youtube-dl docs for the full list.
         I recommend having ffmpeg installed and in your path."""
-        await bot.say(f"Okay i am downloading the video at {url} and uploading it to your drive!")
+        await ctx.send(f"Okay i am downloading the video at {url} and uploading it to your drive!")
         await bot.loop.run_in_executor(None, _downloadU, url)
-        await bot.say('Done!')
+        await ctx.send('Done!')
 
     @checks.is_owner()
-    @bot.command(pass_context=True, hidden=not selfbot, aliases=['dla'])
+    @bot.command(hidden=True, aliases=['dla'])
     async def downloadaudio(ctx, url: str):
         """This downloads the audio (or video) from the given link and saves it in the bot folder.
         This should work for most sites. Read the youtube-dl docs for the full list."""
-        await bot.say(f"Okay i am downloading the audio at {url}")
+        await ctx.send(f"Okay i am downloading the audio at {url}")
         await bot.loop.run_in_executor(None, _downloada, url)
-        await bot.say('Done!')
+        await ctx.send('Done!')
 
     @checks.is_owner()
-    @bot.command(pass_context=True, hidden=not selfbot, aliases=['dlv', 'dl'])
+    @bot.command(hidden=True, aliases=['dlv', 'dl'])
     async def downloadvideo(ctx, url: str):
         """This downloads a video from the given link and saves it in the folder where the bot is located.
         This command also converts the video to MP4 if it isn't in that format already.
         So it is not advisable to use this for audio files. use dla instead.
         This shoud work for most sites. Read the youtube-dl docs for the full list.
         I recommend having ffmpeg installed and in your path."""
-        await bot.say(f"Okay i am downloading the video at {url}")
+        await ctx.send(f"Okay i am downloading the video at {url}")
         await bot.loop.run_in_executor(None, _download, url)
-        await bot.say('Done!')
+        await ctx.send('Done!')
 
 if provideTranslation:
     @bot.command(aliases=['trans', 'tl'])
-    async def translate(*, translate: str):
+    async def translate(ctx, *, translate: str):
         """Translates the given Text into the given language.
            Usage: EN Text
            where EN is a Language shorthand like DE EN NL etc
@@ -491,97 +498,76 @@ if provideTranslation:
             translated, extra_data = deepl.translate(target=translate[0].upper()+translate[1].upper(), text=translate[3:])
         except:
             translated = "The Text was not given in the proper format: EN Text"
-        await bot.say(translated)
+        await ctx.send(translated)
 
 if peewee_available:
     @checks.is_owner()
-    @bot.command(pass_context=True, aliases=['qaddf'])
+    @bot.command(aliases=['qaddf'])
     async def quoteaddfile(ctx, name: str):
         """Creates a new Quote with the given attachment.
         Attach a file to the command that you run."""
         attachment = ctx.message.attachments[0]
         url = attachment['url']
         database.createLinkQuote(ctx.message.author, name=name, link=url)
-        await bot.say("Done")
+        await ctx.send("Done")
 
     @checks.is_owner()
-    @bot.command(pass_context=True, aliases=['qadd'])
+    @bot.command(aliases=['qadd'])
     async def quoteadd(ctx, name: str, text: str):
         """Adds a text quote into the bot database."""
         try:
             database.createTextQuote(ctx.message.author, name=name, text=text)
         except peewee.IntegrityError:
-            return await bot.say("This quote couldn't be added. Most likely the keyword is taken.")
+            return await ctx.send("This quote couldn't be added. Most likely the keyword is taken.")
         except Exception as e:
             logging.log(level=logging.ERROR, msg=e)
-            return await bot.say("There was a weird error. Inform the bot Owner.")
-        await bot.say("Done")
+            return await ctx.send("There was a weird error. Inform the bot Owner.")
+        await ctx.send("Done")
 
-    @bot.command(pass_context=True, aliases=['q'])
+    @bot.command(aliases=['q'])
     async def quote(ctx, name: str):
         """Posts the Quote with the given name in the chat."""
-        await bot.delete_message(ctx.message)
+        await ctx.message.delete()
         try:
             quote = database.Quote.get(name=name)
         except peewee.DoesNotExist:
-            return await bot.reply("This doesn't exist")
+            return await ctx.send("This doesn't exist")
 
         if quote.text:
-            await bot.say("📢 " + quote.text)
+            await ctx.send("📢 " + quote.text)
             quote.times_used += 1
         else:
-            await bot.say("📢 " + quote.link)
+            await ctx.send("📢 " + quote.link)
         quote.times_used += 1
 
 
-@bot.command(pass_context=True)
+@bot.command()
 async def ping(ctx):
     """Checks the ping of the bot"""
-    m = await bot.say("Ping?")
-    await bot.edit_message(m, f"Pong, Latency is {m.timestamp - ctx.message.timestamp}.")
+    m = await ctx.send("Ping?")
+    await m.edit(f"Pong, Latency is {m.timestamp - ctx.message.timestamp}.")
 
-@bot.command(hidden=True, aliases=['setgame', 'setplaying'])
-@commands.has_permissions(administrator=True)
-async def gametitle(*, message: str):
-    """Sets the currently playing status of the bot"""
-    await bot.change_presence(game=discord.Game(name=message))
-    await bot.reply(f"Changed the playing status to {message}")
 
-if not selfbot:
-    @bot.command(pass_context=True, aliases=['prune', 'delmsgs'])
-    @commands.has_permissions(manage_messages=True)
-    async def purge(ctx, amount: int):
-        """Removes the given amount of messages from the given channel."""
-        try:
-            await bot.purge_from(ctx.message.channel, limit=amount+1)
-        except discord.Forbidden:
-            await bot.reply("I couldn't do that because of missing permissions")
+# @bot.command(hidden=True, aliases=['setgame', 'setplaying'])
+# @commands.has_permissions(administrator=True)
+# async def gametitle(ctx, *, message: str):
+#     """Sets the currently playing status of the bot"""
+#     await bot.change_presence(game=discord.Game(name=message))
+#     await ctx.send(f"Changed the playing status to {message}")
+
 
 @bot.command()
 @commands.has_permissions(manage_messages=True)
-async def changelog():
+async def changelog(ctx):
     """Gives back the changelog for the most recent non bugfix build. Full changelog is in Changelog.md"""
-    await bot.say("""3.2.1 Added some commands to just download files with youtube.dl (dla and dlv)""")
+    await ctx.send("""4.0.0a Rewrite to allow the usage of discordpy 1.0 and newer.
+    3.2.1 Added some commands to just download files with youtube.dl (dla and dlv)""")
 
-if selfbot:
-    @bot.command(pass_context=True)
-    async def autotrain(ctx, times: int=10):
-        await bot.delete_message(ctx.message)
-        i = 0
-        while i < times:
-            await asyncio.sleep(random.randint(15, 30))
-            await bot.say("t!pet train")
-            i += 1
-if selfbot:
-    @bot.command(pass_context=True)
-    async def getdaily(ctx):
-        await bot.delete_message(ctx.message)
-        await bot.say(";timely")
-        await bot.say("pls daily")
+if __name__ == '__main__':
+    try:
+        bot.run(loginID)
+    except:
+        raise ValueError(
+            "Couldn't log in with the given credentials, please check those in config.ini"
+            " and your connection and try again!")
 
-try:
-    bot.run(loginID, bot=not selfbot)
-except:
-    raise ValueError(
-        "Couldn't log in with the given credentials, please check those in config.ini"
-        " and your connection and try again!")

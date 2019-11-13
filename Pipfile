@@ -6,12 +6,14 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-requests = "*"
-pyrandom = "*"
 google-api-python-client = "*"
 peewee = "*"
-deepl = "*"
-"discord.py" = {extras = ["voice"],version = "<1.0.0"}
+"discord.py" = {extras = ["voice"],version = "*"}
+loguru = "*"
+httpx = "*"
+youtube-dl = "*"
+aiodns = "*"
+cchardet = "*"
 
 [requires]
 python_version = "3.8"
