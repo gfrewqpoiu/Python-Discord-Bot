@@ -4,6 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+pycodestyle = "*"
 
 [packages]
 google-api-python-client = "*"
@@ -14,6 +15,7 @@ httpx = "*"
 youtube-dl = "*"
 aiodns = "*"
 cchardet = "*"
+randomorgapiclient = {git = "https://github.com/gfrewqpoiu/RandomOrgAPIClient.git"}
 
 [requires]
 python_version = "3.8"

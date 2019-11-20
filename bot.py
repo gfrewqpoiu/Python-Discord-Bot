@@ -62,10 +62,9 @@ if userandomAPI:
     randomAPIKey = rngcfg.get('Random.org Key', '')
     randomAPIKey.strip()
     if randomAPIKey:
-        from rdoclient import RandomOrgClient
+        from RandomOrgAPIClient import RandomOrgClient
         trandom = RandomOrgClient(randomAPIKey)
         provideRandomOrg = True
-        pass
 
 if usegoogleAPI:
     googlekey = searchcfg.get('Google API Key', '')
@@ -118,12 +117,14 @@ async def getrandints(minimum: int=1, maximum: int=6, amount: int=1, force_built
     if minimum < maximum and 50 >= amount > 0:
         if provideRandomOrg and not force_builtin:
             try:
-                results = trandom.generate_integers(
-                    n=amount, min=minimum, max=maximum)
+                logger.debug("Using Random.Org to fetch random Numbers")
+                results = await trandom.generateIntegers(
+                    amount=amount, min=minimum, max=maximum)
                 result = ''.join(str(results))
                 return result.strip() + " provided by random.org"
 
             except:
+                logger.warning("Failed to use Random.org for number generation, falling back to local RNG.")
                 result = ''
                 for i in range(0, amount):
                     result += str(random.randint(minimum, maximum)) + " "
